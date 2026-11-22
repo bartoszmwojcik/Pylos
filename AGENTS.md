@@ -21,6 +21,9 @@ who it is for, and the chosen stack, once that is decided. Then re-run
 | Tests | TODO — no test suite yet | Every fix ships with a regression test once a runner exists. |
 | CI | TODO — no `.github/workflows/` yet | Mirror `validation.commands` in CI when it is added. |
 | Agent pipeline / process | `.ai/agentic.config.json`, `SDLC.md`, `.ai/trackers/github.md`, `.ai/browsers/agent-browser.md` | Change config and `SDLC.md` together; re-run `om-setup-agent-pipeline` when toolchain or labels change. |
+<!-- discovery:routing-start -->
+| Product discovery, a product brief, or a backlog | `.ai/specs/product-brief.md`, `.ai/specs/research/`, `.ai/specs/backlog.md`, `SDLC.md` → Definition of Ready and Product decisions as a protected contract | Non-goals, business rules and decisions in the brief are a protected contract — change them only with a superseding entry approved by their owner; synthetic personas are hypotheses, not evidence. |
+<!-- discovery:routing-end -->
 | Installed skills | `.claude/skills/`, `skills-lock.json` | Do not edit installed skills; put repo-specific deviations in `.ai/skills/<skill-name>/SKILL.md`. |
 
 ## Always / Ask first / Never
