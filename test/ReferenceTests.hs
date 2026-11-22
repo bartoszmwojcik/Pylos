@@ -179,6 +179,25 @@ shapeTests =
             offered = takeBacksFor (Place (pos "a44")) p
         Set.fromList [pos "b11", pos "a11"] `elem` offered @? "{b11, a11} missing"
         Set.singleton (pos "a11") `elem` offered @?= False
+    , testCase "there are 22 shapes: 9 + 4 + 1 squares and 8 rows on level a" $ do
+        let squaresOn l = length [s | s <- allShapes, shapeKind s == Square, all ((== l) . posLevel) (shapeSquares s)]
+        map squaresOn [A, B, C, D] @?= [9, 4, 1, 0]
+        length [s | s <- allShapes, shapeKind s == Row] @?= 8
+        all (all ((== A) . posLevel) . shapeSquares) [s | s <- allShapes, shapeKind s == Row]
+          @? "a row off level a"
+    , testCase "completing the square on level c offers 0-2 take-backs" $ do
+        -- Levels a and b full (mixed), White holds c11 c12 c21 and places c22.
+        -- The corners of b are Black, so removing a c ball frees no White ball.
+        let ws = ["a11", "a13", "a22", "a24", "a31", "a33", "b12", "b21", "b22", "b23", "b32", "c11", "c12", "c21"]
+            bs = ["a12", "a14", "a21", "a23", "a32", "a34", "a41", "a42", "a43", "a44", "b11", "b13", "b31", "b33"]
+            p = mkPosition ws bs White
+        takeBacksFor (Place (pos "c22")) p @?= allUpToTwo ["c11", "c12", "c21", "c22"]
+    , testCase "negative: a shape already on the board does not trigger again" $ do
+        let p = mkPosition ["a11", "a12", "a21", "a22"] ["a33", "a34", "a43"] White
+        takeBacksFor (Place (pos "a44")) p @?= [Set.empty]
+    , testCase "negative: a full 2x2 block of mixed colours is not a shape" $ do
+        let p = mkPosition ["a11", "a12"] ["a21"] White
+        takeBacksFor (Place (pos "a22")) p @?= [Set.empty]
     , testCase "negative: a diagonal of 4 on level a is not a shape" $ do
         let p = mkPosition ["a11", "a22", "a33"] ["a12", "a21", "a34"] White
         takeBacksFor (Place (pos "a44")) p @?= [Set.empty]

@@ -44,7 +44,7 @@ import Pylos.Reference.Move
 isSupported :: Board -> Pos -> Bool
 isSupported b p = all (`Map.member` b) (supports p)
 
--- | No ball on the square.
+-- | No ball on the square. A placement or a raise needs an empty target (R03, R08).
 isEmpty :: Board -> Pos -> Bool
 isEmpty b p = not (Map.member p b)
 
@@ -96,7 +96,7 @@ allShapes = squares ++ rows
       [Shape Row [Pos A r c | c <- [1 .. 4]] | r <- [1 .. 4]]
         ++ [Shape Row [Pos A r c | r <- [1 .. 4]] | c <- [1 .. 4]]
 
--- | The shapes that contain a given square.
+-- | The shapes that contain a given square. R07, D14.
 shapesThrough :: Pos -> [Shape]
 shapesThrough p = [s | s <- allShapes, p `elem` shapeSquares s]
 
@@ -190,7 +190,8 @@ legalMoves pos
   where
     me = toMove pos
 
--- | Is this move one of the legal moves?
+-- | Is this move one of the legal moves? Equality is D08's: same action,
+-- same take-back set.
 isLegal :: Move -> Position -> Bool
 isLegal m pos = m `elem` legalMoves pos
 
@@ -218,7 +219,7 @@ applyMove (Move a takeBack) pos =
       | col == me = reserveOf col pos - used + Set.size takeBack
       | otherwise = reserveOf col pos
 
--- | Play a move after checking that it is legal.
+-- | Play a move after checking that it is legal (D08, via 'isLegal').
 playMove :: Move -> Position -> Either String Position
 playMove m pos
   | isLegal m pos = Right (applyMove m pos)
