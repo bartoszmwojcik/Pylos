@@ -1,3 +1,8 @@
 .claude/settings.local.json
 node_modules/
 .env
+
+# Agent pipeline — per-run QA state (not source)
+.ai/qa/artifacts_*/
+.ai/qa/test-env.json
+.ai/qa/test-env.env
