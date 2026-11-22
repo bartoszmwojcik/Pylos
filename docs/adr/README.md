@@ -20,5 +20,11 @@ Each record explains one choice and the reason for it. The product brief (`.ai/s
 | [0013](0013-bounded-playout-no-engine-draw-rule.md) | Bounded playout; no draw rule in the engine | Accepted | D12 (with R06) |
 | [0014](0014-decision-records-and-haddock-rule-ids.md) | Decision records and Haddock rule citations | Accepted | D13 |
 | [0015](0015-row-rule-is-standard.md) | The row rule is part of the standard rules | Accepted | D14 (supersedes N01; R07, R08) |
+| [0016](0016-package-layout.md) | Two libraries: the reference engine cannot import the bitboard engine | Proposed | D04, D05, P03 |
+| [0017](0017-record-and-golden-formats.md) | A version field in game records; one JSON value per line in golden files | Proposed | D09, D11 |
+| [0018](0018-own-random-generator.md) | The engine carries its own random number generator | Proposed | D11, D12 |
+| [0019](0019-playouts-pick-from-sorted-moves.md) | A playout picks its random move from the sorted move list | Proposed | D05, D11, D12 |
+| [0020](0020-bitboard-representation.md) | The bitboard representation | Proposed | D05, R03, R04, R07, R08 |
+| [0021](0021-dependencies.md) | Library dependencies | Proposed | D09, D10 |
 
-Numbers 0016 and above are for implementation decisions made while building the engines.
+Records 0002–0015 copy decisions the owner made in the brief. Records from 0016 on are implementation choices made while building the engines. They stay Proposed until the owner accepts them.
