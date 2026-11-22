@@ -82,6 +82,24 @@ The spec must list them as numbered decisions D1–D6. Each one needs a hand-bui
 - No lines-rule implementation, only the variant hook (D1).
 - No persistence or database.
 
+## Open points for om-discover to clarify with the owner
+
+These are the 9 gaps named at the start of the brainstorm (2026-11-22). Each one currently has only an agent default. None of them is confirmed by the owner yet.
+
+`om-discover --refresh` should walk the owner through them in the order below. It should record each answer as a decision record under `.ai/specs/research/decisions/` and update the matching row in `.ai/specs/product-brief.md`. The table's last column says when each point is best settled.
+
+| # | Open point | Current agent default | Product-brief ids | Settle in |
+|---|------------|-----------------------|-------------------|-----------|
+| OP1 | **Exact rules.** Which variant: basic, or with the lines rule? Is take-back mandatory (1–2) or optional (0–2)? What exactly is a free ball, and what may a raise do? What ends the game, especially with an empty reserve? How are repetition and loops handled? | D1, D3–D6 above | R01–R06, Q01, A01 | om-discover. Check the official rulebook first. |
+| OP2 | **What one move is.** A compound move (action plus take-backs), or each take-back as its own ply? What makes two moves "the same" for perft? | M1–M3 above | D08 | om-discover |
+| OP3 | **Move notation and game-record format**, shared by perft diffs, logs, replays and the viewer | N1, R1 above | D09 | om-discover if the owner wants it fixed early; otherwise the S1 spec |
+| OP4 | **What the perft check covers.** Which depths, which start and mid-game positions, whether symmetry is checked, and whether seeded playout outcomes are compared too | M3, acceptance above | D11 | S1 and S2 specs. om-discover only confirms the principle. |
+| OP5 | **Which bots, and how they are judged.** Random, greedy, alpha-beta, MCTS? Judged by win rate, Elo, or time or depth limits? Who plays whom in a tournament? | random mover only in S1 | Q03, Scope Later (S3) | om-discover (which bots are Now or Later), then the backlog stories |
+| OP6 | **What the demo is.** Live streaming of a running match (SSE or WebSocket), replay of recorded games, or both? A 2D or 3D board? Viewing only, or human play later? | replay and live over SSE, 2D, human play in S5 | Q02, D01, D03 | om-discover (Scope and Key flows) |
+| OP7 | **Stack.** GHC version, and cabal, stack or nix? Which web layer (warp, scotty, servant)? Which frontend language and build: plain JS, TypeScript, or Haskell-to-JS? Is Node acceptable on the server? | K1: GHC 9.10 with ghcup, cabal and tasty; web layer and frontend open | D10, A03 | om-discover for the constraints; the specs for the library choices |
+| OP8 | **How the owner learns from the code.** Decision records (ADRs), literate Haskell, a design doc per layer, or a mix? What makes a module "understood"? | K2: ADRs in `docs/adr/` and Haddock comments citing rule ids | D06, D13, A02 | om-discover (goal), then backlog acceptance criteria |
+| OP9 | **Slicing.** Where does the first slice end, and what are the Now and Later slices? | S1 to S5 table above; Now = toolchain, S1 and S2 | Scope, backlog E01–E04 | om-discover (Scope), then om-backlog epics |
+
 ## Affected areas (if known)
 
 - Greenfield repository. Suggested layout: a cabal package `pylos` with library modules `Pylos.Reference.{Board,Move,Rules,Notation,Record,Perft,Playout}`, executable `pylos-ref`, test-suite `pylos-ref-test`, and `docs/adr/`.

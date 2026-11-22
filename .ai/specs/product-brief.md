@@ -149,6 +149,7 @@ None. No synthetic material was used.
 | Q02 | What form should the web demo take: replay, live, or both; 2D or 3D? What frontend technology? | No, it blocks S4 only. | project owner | open |
 | Q03 | Which bots should be built, and how are they judged (win rate, Elo, time or depth limit)? | No, it blocks S3 only. | project owner | open |
 | Q04 | Which GitHub repository (or other tracker) will hold the backlog? | Yes, for filing the backlog; not for a dry run. | project owner | open |
+| Q05 | Clarify open points OP1–OP9, listed in `.ai/specs/briefs/2026-11-22-pylos-reference-engine.md` under "Open points for om-discover". They include Q01–Q03 and confirmation of proposals D08–D13. | Yes, for the rows that Q01 blocks (OP1, OP2); no for the rest. | project owner, via `om-discover --refresh` | open |
 
 ## Definition of Ready addendum (own)
 
