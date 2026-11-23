@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en" class="dark" data-prototype-id="viewer-3d">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pylos viewer — 3D design prototype</title>
+<!-- Fonts (proposal): Chakra Petch for UI labels, Barlow for text, JetBrains Mono for notation. Pinned @fontsource on jsDelivr. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/chakra-petch@5.1.0/500.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/chakra-petch@5.1.0/600.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/chakra-petch@5.1.0/700.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/barlow@5.1.0/400.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/barlow@5.1.0/600.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.1.0/400.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.1.0/500.css" />
+<link rel="stylesheet" href="tokens.css" />
+<link rel="stylesheet" href="theme.css" />
+<link rel="stylesheet" href="components.css" />
+<link rel="stylesheet" href="screens.css" />
+<link rel="stylesheet" href="prototype.css" />
+<link rel="stylesheet" href="viewer.css?v=2" />
+<style>.pv-page { padding: 0 !important; background: #080b0e; }</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="pv-first" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14l-10-7z"/></symbol>
+<symbol id="pv-prev" viewBox="0 0 24 24" fill="currentColor"><path d="M17 5v14L7 12z"/></symbol>
+<symbol id="pv-play" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15L19.5 12z"/></symbol>
+<symbol id="pv-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></symbol>
+<symbol id="pv-next" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l10-7z"/></symbol>
+<symbol id="pv-last" viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l10-7z"/></symbol>
+<symbol id="pv-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><rect x="9" y="9" width="6" height="6"/></symbol>
+<symbol id="pv-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v1.5"/></symbol>
+<symbol id="pv-plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M9 2v5M15 2v5M6 7h12v5a6 6 0 0 1-12 0zM12 18v4"/><path d="M3 3l18 18"/></symbol>
+<symbol id="pv-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></symbol>
+<symbol id="pv-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M5 22V3h13l-3 4.5 3 4.5H5"/></symbol>
+<symbol id="pv-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="13" height="13"/><path d="M4 16V3h13"/></symbol>
+</defs></svg>
+
+<div class="doc-toolbar">
+  <strong style="font-size:0.875rem">Pylos viewer · 3D prototype</strong>
+  <nav class="screen-nav" aria-label="Screens"><a href="#s1">1 Library</a><a href="#s2">2 Replay</a><a href="#s3">3 Game over</a><a href="#s4">4 Live</a><a href="#s5">5 Connection lost</a><a href="#s6">6 Replay error</a><a href="#s7">7 Empty library</a></nav>
+  <!-- prototype.js injects the review-mode controls. -->
+</div>
+
+<div class="doc">
+
+<header class="doc-head">
+  <h1>Pylos viewer: 3D replay and live screens</h1>
+  <p class="muted">Design proposal for S4 (web viewer, Later scope) from <code>.ai/specs/product-brief.md</code>.
+    Direction from the owner: 3D board views in the spirit of hpylos; cold, metallic, sans-serif, slightly squarish.
+    Games are real records from <code>pylos-ref playout</code>. Backend behaviour is simulated in the browser. See README.md.</p>
+</header>
+
+<section class="screen" id="s1">
+  <div class="screen-meta">
+    <h2>1. Game library</h2>
+    <p>Pick a saved game record to replay, or join the match that is running now.</p>
+    <div class="screen-refs"><span class="ref">S4</span><span class="ref">D09</span><span class="ref">N03</span></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="frame-dots"><i></i><i></i><i></i></div><span class="frame-url">localhost:8080/</span></div>
+    <main class="page pv-page">
+      <div class="pv-app">
+      <header class="pv-top">
+        <span class="pv-brand"><span class="pv-mark" aria-hidden="true"><i></i><i></i><i></i></span>PYLOS</span>
+        <nav class="pv-nav" aria-label="Viewer">
+          <button type="button" data-goto="s1" aria-current="page">Library</button>
+          <button type="button" data-goto="s4"><span class="pv-dot" aria-hidden="true"></span>Live</button>
+        </nav>
+        <span class="pv-file" data-file></span>
+        <span class="pv-server"><i aria-hidden="true"></i><span>localhost:8080 · </span>connected</span>
+      </header>
+      <div class="pv-library-host" data-library="full" style="display:contents"></div>
+      </div>
+    </main>
+  </div>
+  <div class="notes"><div class="note"><b>1</b><span>Records are the JSON files in <code>games/</code> (D09, N03): no database. The server lists the directory; the result and the end reason come from replaying each record on the server.</span></div><div class="note"><b>2</b><span>Click a file name to open it on screen 2. The hand-edited record opens screen 6.</span></div><div class="note"><b>3</b><span>Bot names are what the record says (<code>random</code> today). Which bots exist is still open (Q03).</span></div></div>
+</section>
+<section class="screen" id="s2">
+  <div class="screen-meta">
+    <h2>2. Replay a game (representative screen)</h2>
+    <p>Step through a recorded game and see each move on the 3D board: where the ball went, the shape it completed and which balls came back.</p>
+    <div class="screen-refs"><span class="ref">S4</span><span class="ref">R03</span><span class="ref">R04</span><span class="ref">R07</span><span class="ref">D08</span><span class="ref">D09</span></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="frame-dots"><i></i><i></i><i></i></div><span class="frame-url">localhost:8080/replay/2026-11-22-seed-0007.json?ply=13</span></div>
+    <main class="page pv-page">
+      <div class="pv-app">
+      <header class="pv-top">
+        <span class="pv-brand"><span class="pv-mark" aria-hidden="true"><i></i><i></i><i></i></span>PYLOS</span>
+        <nav class="pv-nav" aria-label="Viewer">
+          <button type="button" data-goto="s1" aria-current="page">Library</button>
+          <button type="button" data-goto="s4"><span class="pv-dot" aria-hidden="true"></span>Live</button>
+        </nav>
+        <span class="pv-file" data-file>games/2026-11-22-seed-0007.json</span>
+        <span class="pv-server"><i aria-hidden="true"></i><span>localhost:8080 · </span>connected</span>
+      </header>
+      <div data-viewer='{"game":2,"ply":13,"mode":"replay"}' style="display:contents"></div>
+      </div>
+    </main>
+  </div>
+  <div class="notes"><div class="note"><b>1</b><span>Drag to orbit, scroll to zoom. Camera presets: Perspective, Top, Side, Corner. Levels hides upper levels so you can look inside the pyramid.</span></div><div class="note"><b>2</b><span>The last move has an ice ring. A raise draws a dashed arc from a translucent ghost at its origin. Taken-back balls stay as translucent ghosts for that ply. Balls of a completed shape get a thin ring.</span></div><div class="note"><b>3</b><span>Arrow keys step through the moves while the board has focus, Home and End jump, and Space plays. Hover a ball to see its square (<code>b22 · White · level b</code>).</span></div><div class="note"><b>4</b><span>The move text is generated from the record. The engine’s own wording for moves is not specified anywhere; this is a proposal.</span></div></div>
+</section>
+<section class="screen" id="s3">
+  <div class="screen-meta">
+    <h2>3. Game over</h2>
+    <p>The final position, with the result and the rule that ended the game.</p>
+    <div class="screen-refs"><span class="ref">R05</span><span class="ref">D12</span></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="frame-dots"><i></i><i></i><i></i></div><span class="frame-url">localhost:8080/replay/2026-11-21-seed-1234.json</span></div>
+    <main class="page pv-page">
+      <div class="pv-app">
+      <header class="pv-top">
+        <span class="pv-brand"><span class="pv-mark" aria-hidden="true"><i></i><i></i><i></i></span>PYLOS</span>
+        <nav class="pv-nav" aria-label="Viewer">
+          <button type="button" data-goto="s1" aria-current="page">Library</button>
+          <button type="button" data-goto="s4"><span class="pv-dot" aria-hidden="true"></span>Live</button>
+        </nav>
+        <span class="pv-file" data-file>games/2026-11-21-seed-1234.json</span>
+        <span class="pv-server"><i aria-hidden="true"></i><span>localhost:8080 · </span>connected</span>
+      </header>
+      <div data-viewer='{"game":0,"mode":"replay"}' style="display:contents"></div>
+      </div>
+    </main>
+  </div>
+  <div class="notes"><div class="note"><b>1</b><span>Three endings exist: the apex is placed, or the side to move has an empty reserve (both R05), or the runner’s ply cap is reached (D12, result <code>capped</code>). Open the <code>cap60</code> record from the library to see the capped banner.</span></div><div class="note"><b>2</b><span>The banner is shown only on the last ply. Step back and it goes away.</span></div></div>
+</section>
+<section class="screen" id="s4">
+  <div class="screen-meta">
+    <h2>4. Watch a live match</h2>
+    <p>Watch a bot-vs-bot game while it is played. The board follows each new move; stepping back pauses following without stopping the match.</p>
+    <div class="screen-refs"><span class="ref">S4</span><span class="ref">D02</span><span class="ref">D03</span><span class="ref">P01</span><span class="ref">Q02</span></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="frame-dots"><i></i><i></i><i></i></div><span class="frame-url">localhost:8080/live</span></div>
+    <main class="page pv-page">
+      <div class="pv-app">
+      <header class="pv-top">
+        <span class="pv-brand"><span class="pv-mark" aria-hidden="true"><i></i><i></i><i></i></span>PYLOS</span>
+        <nav class="pv-nav" aria-label="Viewer">
+          <button type="button" data-goto="s1">Library</button>
+          <button type="button" data-goto="s4" aria-current="page"><span class="pv-dot" aria-hidden="true"></span>Live</button>
+        </nav>
+        <span class="pv-file" data-file>live · random vs random</span>
+        <span class="pv-server"><i aria-hidden="true"></i><span>localhost:8080 · </span>connected</span>
+      </header>
+      <div data-viewer='{"game":1,"ply":12,"mode":"live"}' style="display:contents"></div>
+      </div>
+    </main>
+  </div>
+  <div class="notes"><div class="note"><b>1</b><span><strong>Simulated:</strong> a new ply arrives every 2.4 s from a fixture record. The real transport (websocket or server-sent events) is undecided (Q02).</span></div><div class="note"><b>2</b><span>Click an earlier move: following pauses and “Jump to live” appears. The Live pill turns grey while you are behind.</span></div><div class="note"><b>3</b><span>Play is disabled in live mode: the match sets the pace.</span></div></div>
+</section>
+<section class="screen" id="s5">
+  <div class="screen-meta">
+    <h2>5. Live: connection lost</h2>
+    <p>The server stopped answering during a live match. The board keeps the last known position and the viewer reconnects by itself.</p>
+    <div class="screen-refs"><span class="ref">P01</span><span class="ref">Q02</span></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="frame-dots"><i></i><i></i><i></i></div><span class="frame-url">localhost:8080/live</span></div>
+    <main class="page pv-page">
+      <div class="pv-app">
+      <header class="pv-top">
+        <span class="pv-brand"><span class="pv-mark" aria-hidden="true"><i></i><i></i><i></i></span>PYLOS</span>
+        <nav class="pv-nav" aria-label="Viewer">
+          <button type="button" data-goto="s1">Library</button>
+          <button type="button" data-goto="s4" aria-current="page"><span class="pv-dot" aria-hidden="true"></span>Live</button>
+        </nav>
+        <span class="pv-file" data-file>live · random vs random</span>
+        <span class="pv-server is-lost"><i aria-hidden="true"></i><span>localhost:8080 · </span>reconnecting</span>
+      </header>
+      <div data-viewer='{"game":1,"ply":17,"mode":"lost"}' style="display:contents"></div>
+      </div>
+    </main>
+  </div>
+  <div class="notes"><div class="note"><b>1</b><span><strong>Simulated:</strong> the countdown loops and “Retry now” does nothing real.</span></div><div class="note"><b>2</b><span>Moves already received stay browsable while disconnected.</span></div></div>
+</section>
+<section class="screen" id="s6">
+  <div class="screen-meta">
+    <h2>6. Record cannot be replayed</h2>
+    <p>A record contains a move that is not legal at its position. The viewer shows the game up to the last legal move and names the problem.</p>
+    <div class="screen-refs"><span class="ref">D09</span><span class="ref">D11</span></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="frame-dots"><i></i><i></i><i></i></div><span class="frame-url">localhost:8080/replay/2026-11-20-hand-edited.json</span></div>
+    <main class="page pv-page">
+      <div class="pv-app">
+      <header class="pv-top">
+        <span class="pv-brand"><span class="pv-mark" aria-hidden="true"><i></i><i></i><i></i></span>PYLOS</span>
+        <nav class="pv-nav" aria-label="Viewer">
+          <button type="button" data-goto="s1" aria-current="page">Library</button>
+          <button type="button" data-goto="s4"><span class="pv-dot" aria-hidden="true"></span>Live</button>
+        </nav>
+        <span class="pv-file" data-file>games/2026-11-20-hand-edited.json</span>
+        <span class="pv-server"><i aria-hidden="true"></i><span>localhost:8080 · </span>connected</span>
+      </header>
+      <div data-viewer='{"broken":true,"mode":"replay"}' style="display:contents"></div>
+      </div>
+    </main>
+  </div>
+  <div class="notes"><div class="note"><b>1</b><span>The server validates the record with the reference engine (as <code>pylos-ref replay</code> does) and sends the first failing move with a reason. The wording here is a proposal.</span></div><div class="note"><b>2</b><span>The illegal move is struck through in red; later moves are disabled. The file is never modified.</span></div></div>
+</section>
+<section class="screen" id="s7">
+  <div class="screen-meta">
+    <h2>7. Library with no records</h2>
+    <p>A fresh checkout: no records and no running match.</p>
+    <div class="screen-refs"><span class="ref">N03</span></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><div class="frame-dots"><i></i><i></i><i></i></div><span class="frame-url">localhost:8080/</span></div>
+    <main class="page pv-page">
+      <div class="pv-app">
+      <header class="pv-top">
+        <span class="pv-brand"><span class="pv-mark" aria-hidden="true"><i></i><i></i><i></i></span>PYLOS</span>
+        <nav class="pv-nav" aria-label="Viewer">
+          <button type="button" data-goto="s1" aria-current="page">Library</button>
+          <button type="button" data-goto="s4"><span class="pv-dot" aria-hidden="true"></span>Live</button>
+        </nav>
+        <span class="pv-file" data-file></span>
+        <span class="pv-server"><i aria-hidden="true"></i><span>localhost:8080 · </span>connected</span>
+      </header>
+      <div data-library="empty" style="display:contents"></div>
+      </div>
+    </main>
+  </div>
+  <div class="notes"><div class="note"><b>1</b><span>The empty state gives the one command that produces a record today. <code>pylos-match</code> is a placeholder name for the S3 match runner.</span></div></div>
+</section>
+
+</div>
+
+<script src="games.js"></script>
+<script src="comments.js"></script>
+<script src="prototype.js"></script>
+<script type="module" src="app.js?v=5"></script>
+</body>
+</html>
