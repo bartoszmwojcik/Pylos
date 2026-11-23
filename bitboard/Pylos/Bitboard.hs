@@ -32,6 +32,9 @@ module Pylos.Bitboard
   , legalMoves
   , applyMove
   , winner
+  , ownAndOther
+  , reserveToMove
+  , freeOf
   , toRefMove
   , fromRefMove
     -- * Perft and playouts
@@ -178,11 +181,13 @@ fromRefMove (R.Move a tb) = case a of
   where
     mask = maskOf (Set.toList tb)
 
+-- | The masks of the player to move and of the opponent.
 ownAndOther :: BPosition -> (Word32, Word32)
 ownAndOther p
   | bWhiteToMove p = (bWhite p, bBlack p)
   | otherwise = (bBlack p, bWhite p)
 
+-- | The reserve of the player to move.
 reserveToMove :: BPosition -> Int
 reserveToMove p = if bWhiteToMove p then bWhiteReserve p else bBlackReserve p
 
@@ -197,7 +202,8 @@ supportedEmpty occ = go 0 (allSquares .&. complement occ)
           acc' = if s .&. occ == s then acc .|. bit i else acc
        in go acc' (m .&. (m - 1))
 
--- | The balls of a mask with nothing resting on them (R04).
+-- | The balls of a mask with nothing resting on them (R04), given all
+-- occupied squares.
 freeOf :: Word32 -> Word32 -> Word32
 freeOf balls occ = go 0 balls
   where

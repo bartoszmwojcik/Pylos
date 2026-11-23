@@ -1,0 +1,59 @@
+/* style.css — three columns: controls and games | 3D board | game panel. */
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: grid;
+  grid-template-columns: 290px 1fr 290px;
+  font: 14px/1.4 system-ui, sans-serif;
+  background: #15191f;
+  color: #dde3ea;
+}
+aside { padding: 12px 14px; overflow-y: auto; height: 100vh; background: #1b2028; }
+#left { border-right: 1px solid #2c333d; }
+#panel { border-left: 1px solid #2c333d; display: flex; flex-direction: column; }
+#board { position: relative; height: 100vh; min-width: 0; overflow: hidden; }
+#board canvas { display: block; }
+
+h1 { font-size: 20px; margin: 0 0 8px; }
+h2 { font-size: 15px; margin: 14px 0 6px; }
+h3 { font-size: 13px; margin: 12px 0 4px; color: #9aa6b4; }
+code { font-family: ui-monospace, monospace; font-size: 12.5px; }
+.muted { color: #8792a0; font-size: 12.5px; }
+.error { color: #ff8a80; font-size: 12.5px; white-space: pre-wrap; }
+.badge { font-size: 11px; background: #7a5cff; color: white; padding: 1px 6px; border-radius: 8px; vertical-align: middle; }
+.fatal { position: fixed; top: 0; left: 0; right: 0; background: #b3261e; color: white; padding: 8px; z-index: 9; }
+
+label { display: block; font-size: 12px; color: #9aa6b4; margin-top: 8px; }
+input, select, button {
+  width: 100%; font: inherit; color: inherit; background: #252c36;
+  border: 1px solid #39424e; border-radius: 4px; padding: 5px 7px;
+}
+select { margin-top: 3px; font-size: 12px; color: #9aa6b4; }
+.row { display: flex; gap: 8px; }
+.row > div { flex: 1; }
+button { margin-top: 12px; background: #2f6fde; border-color: #2f6fde; color: white; cursor: pointer; font-weight: 600; }
+button:disabled { opacity: 0.6; cursor: default; }
+
+#games { list-style: none; margin: 0; padding: 0; }
+#games li { padding: 6px 8px; border-radius: 4px; cursor: pointer; margin-bottom: 3px; background: #222831; }
+#games li:hover { background: #2a323d; }
+#games li.current { outline: 1px solid #2f6fde; background: #23304a; }
+
+.dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.dot.white { background: #f2e8cf; }
+.dot.black { background: #2b2420; border: 1px solid #6b5f57; }
+.player, .reserve, .turn { margin: 3px 0; }
+.reserve .balls { display: block; margin-left: 16px; line-height: 10px; }
+.reserve .balls .dot { width: 8px; height: 8px; margin-right: 2px; }
+.turn { font-weight: 600; margin-top: 10px; }
+.result { margin-top: 10px; font-weight: 700; font-size: 17px; color: #ffcf5c; }
+
+.moves { flex: 1; min-height: 120px; overflow-y: auto; margin: 0; padding: 0 0 0 34px; }
+.moves li { padding: 1px 4px; border-radius: 3px; }
+.moves li.latest { background: #4a3a10; color: #ffdf8a; }
+
+@media (max-width: 900px) {
+  body { grid-template-columns: 1fr; }
+  aside, #board { height: auto; }
+  #board { height: 60vh; order: -1; }
+}

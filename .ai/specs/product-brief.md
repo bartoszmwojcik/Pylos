@@ -1,6 +1,6 @@
 # Pylos — product brief
 
-- Date: 2026-11-22 (refreshed 2026-11-22)
+- Date: 2026-11-22 (refreshed 2026-11-22; Q02 and Q03 answered 2026-11-23)
 - Mode: own; Owner: project owner; Pass: full (refresh, three interview rounds with the owner)
 - Evidence basis: two sources, both from the owner. The first is the owner's direct account of their situation and goals. The second is the owner's answers in this refresh session (three rounds), which settle every game rule and confirm the agent's design proposals. The owner is the only intended user, so no claim is made about other users. Several rules began as agent proposals that the owner then confirmed, and R06 and D08 are accepted agent recommendations. The rule answers come from the owner's memory of the game, not from a rulebook that was read. They define the rules this project implements. Whether they match the official Gigamic rules is the most consequential untested belief (A01).
 - Coverage: 41 claims — 33 sourced (interview 6, data 0, document 26, product 1, benchmark 0), 0 synthetic, 8 assumed; 0 entries on the collection plan
@@ -61,10 +61,12 @@ Benchmarks are deferred because they do not inform the current decision.
   - S1, the reference engine: rules R03–R08 (R01 and R02 are superseded), moves D08, notation and records D09, QuickCheck properties, bounded playout D12, a perft CLI and golden files (D04, D11).
   - S2, the bitboard engine, verified against S1 (D05).
   - Decision records for every choice (D13).
+  - S3, bots (random, greedy, alpha-beta, MCTS, one knob each) and a match runner with a ply cap (D02, D12, D15). Added 2026-11-23.
+  - S4, a live 3D web viewer of bot-vs-bot games served by the backend (D01, D03, D16, D17). Added 2026-11-23.
+- **Next:**
+  - S5, human-vs-bot play in the browser. The owner expects it soon, so S3 and S4 are designed for it (D16).
 - **Later:**
-  - S3, bots and a match runner with a ply cap (D02, D12).
-  - S4, a web viewer served by the backend, with replay and a live game (D01, D03, Q02).
-  - S5, human-vs-bot play.
+  - Replay of recorded games in the viewer (not requested for S4, D17).
 - **Not doing:** see Non-goals.
 
 ## Domain glossary
@@ -129,19 +131,22 @@ Benchmarks are deferred because they do not inform the current decision.
 | D12 | 2026-11-22 | S1 provides a bounded random playout that returns an outcome or `Capped`. The draw-by-ply-cap policy lives in the S3 runner. | R06. This began as an agent recommendation, confirmed as written by the owner. | project owner | active | before S3 | owner | `[DOCUMENT]` owner-rules-and-proposals | none |
 | D13 | 2026-11-22 | Every decision gets a decision record in `docs/adr/`. Every rule function's Haddock documentation cites the rule id it implements. | P02. This began as an agent recommendation, confirmed as written by the owner; literate Haskell was the alternative. Whether it works for the owner is A02. | project owner | active | A02 | owner | `[DOCUMENT]` owner-rules-and-proposals | none |
 | D14 | 2026-11-22 | The engine implements the row rule: a complete horizontal or vertical row of 4 on level a triggers the take-back (R07). It is part of the standard rules, not a variant behind a hook. | The owner's rule answer; the owner approved replacing N01 and R01's exclusion of the lines rule. | project owner | active | A01 | owner | `[DOCUMENT]` owner-rules-and-proposals | N01 |
+| D15 | 2026-11-23 | The bots are random, greedy, alpha-beta and MCTS. Each has at most one knob: the evaluation weights for greedy, the search depth for alpha-beta, the iteration count for MCTS. A bot is written as a one-line spec (`alphabeta:depth=3`), so any two configurations can play each other. Greedy and alpha-beta share one evaluation function. Bots run on the bitboard engine. | Owner's answer to Q03, choosing "fewer knobs" over a richer set of parameters per bot. How bots are judged (win rate, Elo) is not decided; the match runner reports wins, losses and draws. | project owner | active | before S5 | owner | `[INTERVIEW]` owner answers 2026-11-23 | none |
+| D16 | 2026-11-23 | The web stack is scotty on warp. The server serves plain JavaScript ES modules with a vendored Three.js and no build step. Commands go up as HTTP requests, and game updates come down over Server-Sent Events. Human moves (S5) will be one more `POST` on the same stream, so no WebSocket is needed. | Owner accepted the agent's proposal on 2026-11-23, with the note that human-vs-bot play comes soon. scotty is the most readable Haskell web library; SSE fits one-way watching and also serves S5 with a POST; Three.js gives 3D without a JS toolchain. servant and WebSockets were rejected as more to learn for no current need. | project owner | active | before S5 | owner | `[INTERVIEW]` owner answers 2026-11-23 | none |
+| D17 | 2026-11-23 | The viewer shows live games in 3D. Replay of recorded games is not part of S4. | Owner's answer to Q02: "live games, 3D". | project owner | active | before S5 | owner | `[INTERVIEW]` owner answers 2026-11-23 | none |
 
 ## Riskiest assumptions
 
 | Id | Assumption | Importance | Evidence today | If false | Smallest test | Owner | By when | Result |
 |---|---|---|---|---|---|---|---|---|
 | A01 | The owner's remembered rules (R03, R04, R05, R07, R08) match the official Gigamic rules. `[ASSUMPTION]` owner's memory | medium | The owner answered from memory on 2026-11-22; no rulebook was read. The engine follows the owner's chosen rules either way. | Both engines encode the same non-official rule and pass every differential check. That matters only if the owner wants the official game. | Read the printed or publisher's rulebook and compare R03, R04, R05, R07, R08 and D14 one by one. | project owner | before golden values are frozen (#10) | untested |
-| A02 | Decision records plus Haddock rule citations make the code understandable to the owner. `[ASSUMPTION]` agent proposal | medium | none | P02 is not met, and the documentation style must change. | The owner reads the first decision record and the first rules module, then says what was unclear. | project owner | after first S1 story | untested |
+| A02 | Decision records plus Haddock rule citations make the code understandable to the owner. `[ASSUMPTION]` agent proposal | medium | The owner read the decision records and the reference rules module on 2026-11-23. | P02 is not met, and the documentation style must change. | The owner reads the first decision record and the first rules module, then says what was unclear. | project owner | after first S1 story | confirmed 2026-11-23: the owner can read the rules and the code (#6) |
 | A03 | ghcup with GHC 9.10 installs and builds on the headless server. `[ASSUMPTION]` agent proposal | medium | No Haskell tools are found on the PATH. | The toolchain decision D10 changes (for example to nix or stack). | Install it and run `cabal build` and `cabal test` on a hello-world project with QuickCheck. | project owner | first task | untested |
 | A04 | Random-play games end, by a win or the cap, within a few hundred plies. `[ASSUMPTION]` agent proposal | low | none | The ply cap and the playout bound need retuning. | Run 10,000 seeded playouts in S1 and look at the length distribution. | project owner | during S1 | untested |
 
 ## Kill criteria
 
-None were stated. For a personal learning project the relevant signal is A02: if the owner cannot follow the reference engine, revise the documentation approach before S2. Whether to stop the project entirely is the owner's call and has not been discussed.
+None were stated. For a personal learning project the relevant signal was A02: if the owner could not follow the reference engine, the documentation approach would change. A02 was confirmed on 2026-11-23. Whether to stop the project entirely is the owner's call and has not been discussed.
 
 ## Hypotheses to test
 
@@ -152,8 +157,8 @@ None. No synthetic material was used.
 | Id | Question | Blocking | Who can answer | Status |
 |---|---|---|---|---|
 | Q01 | Do R01–R06 and D08 match the official rules? In particular: is the take-back mandatory or optional (R02), what happens with an empty reserve (R05), and can a raised ball land on a square it was supporting (R03)? | No | project owner, with the rulebook | closed 2026-11-22: superseded by the owner's chosen rules (R03–R08, D08, D14). The official match is A01. |
-| Q02 | What form should the web demo take: replay, live, or both; 2D or 3D? What frontend technology? | No, it blocks S4 only. | project owner | open |
-| Q03 | Which bots should be built, and how are they judged (win rate, Elo, time or depth limit)? | No, it blocks S3 only. | project owner | open |
+| Q02 | What form should the web demo take: replay, live, or both; 2D or 3D? What frontend technology? | No, it blocks S4 only. | project owner | closed 2026-11-23: live games in 3D (D17); scotty + SSE + Three.js (D16) |
+| Q03 | Which bots should be built, and how are they judged (win rate, Elo, time or depth limit)? | No, it blocks S3 only. | project owner | closed 2026-11-23: greedy, alpha-beta and MCTS with one knob each (D15); judging is still open and does not block S3 |
 | Q04 | Which GitHub repository (or other tracker) will hold the backlog? | No | project owner | closed: the backlog is filed as #1–#12 in the project's GitHub repository (`.ai/specs/backlog.md`) |
 | Q05 | Clarify open points OP1–OP9, listed in `.ai/specs/briefs/2026-11-22-pylos-reference-engine.md` under "Open points for om-discover". | No | project owner, via `om-discover --refresh` | partly answered 2026-11-22: OP1, OP2, OP3, OP4 principle (D11), OP7 toolchain (D10), OP8 (D13). OP9 is settled by the Scope confirmed with this brief. OP5 and OP6 remain as Q03 and Q02; OP7's web layer and frontend remain with Q02. |
 | Q06 | Confirm or correct R04 (free ball; take-backs in order) and R06 (no draw rule in the engine). | No | project owner | closed 2026-11-22: both confirmed (R04, R06) |
