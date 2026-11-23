@@ -135,13 +135,13 @@ Benchmarks are deferred because they do not inform the current decision.
 | Id | Assumption | Importance | Evidence today | If false | Smallest test | Owner | By when | Result |
 |---|---|---|---|---|---|---|---|---|
 | A01 | The owner's remembered rules (R03, R04, R05, R07, R08) match the official Gigamic rules. `[ASSUMPTION]` owner's memory | medium | The owner answered from memory on 2026-11-22; no rulebook was read. The engine follows the owner's chosen rules either way. | Both engines encode the same non-official rule and pass every differential check. That matters only if the owner wants the official game. | Read the printed or publisher's rulebook and compare R03, R04, R05, R07, R08 and D14 one by one. | project owner | before golden values are frozen (#10) | untested |
-| A02 | Decision records plus Haddock rule citations make the code understandable to the owner. `[ASSUMPTION]` agent proposal | medium | none | P02 is not met, and the documentation style must change. | The owner reads the first decision record and the first rules module, then says what was unclear. | project owner | after first S1 story | untested |
+| A02 | Decision records plus Haddock rule citations make the code understandable to the owner. `[ASSUMPTION]` agent proposal | medium | The owner read the decision records and the reference rules module on 2026-11-23. | P02 is not met, and the documentation style must change. | The owner reads the first decision record and the first rules module, then says what was unclear. | project owner | after first S1 story | confirmed 2026-11-23: the owner can read the rules and the code (#6) |
 | A03 | ghcup with GHC 9.10 installs and builds on the headless server. `[ASSUMPTION]` agent proposal | medium | No Haskell tools are found on the PATH. | The toolchain decision D10 changes (for example to nix or stack). | Install it and run `cabal build` and `cabal test` on a hello-world project with QuickCheck. | project owner | first task | untested |
 | A04 | Random-play games end, by a win or the cap, within a few hundred plies. `[ASSUMPTION]` agent proposal | low | none | The ply cap and the playout bound need retuning. | Run 10,000 seeded playouts in S1 and look at the length distribution. | project owner | during S1 | untested |
 
 ## Kill criteria
 
-None were stated. For a personal learning project the relevant signal is A02: if the owner cannot follow the reference engine, revise the documentation approach before S2. Whether to stop the project entirely is the owner's call and has not been discussed.
+None were stated. For a personal learning project the relevant signal was A02: if the owner could not follow the reference engine, the documentation approach would change. A02 was confirmed on 2026-11-23. Whether to stop the project entirely is the owner's call and has not been discussed.
 
 ## Hypotheses to test
 
