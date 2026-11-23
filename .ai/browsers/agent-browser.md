@@ -222,3 +222,8 @@ ignore only an already-closed-session error.
   profile unless the operator explicitly requested that profile.
 - Keep all operation targets local to the application under test. Do not enable
   a cloud provider or send credentials to a remote browser service.
+
+## Notes for this server (prodesk1)
+
+- Chrome's socket path must be short. The cezar `TMPDIR` is too long, so set `TMPDIR=/tmp/abx` (any short directory).
+- AppArmor blocks unprivileged user namespaces, and there is no GPU. Launch with `AGENT_BROWSER_ARGS='--no-sandbox,--use-angle=swiftshader,--enable-unsafe-swiftshader'`. WebGL (the 3D viewer) then renders in software.
