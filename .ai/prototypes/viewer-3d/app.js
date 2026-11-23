@@ -1,7 +1,7 @@
 // Viewer prototype wiring: builds each screen's viewer from data-viewer config.
 // Backend behaviour (record files, live stream, replay validation) is SIMULATED
 // in this file with local timers and fixture records from games.js.
-import { Board3D } from './board3d.js';
+import { Board3D } from './board3d.js?v=3';
 import { replay, describeMove, endReason, colourName, squareOf } from './pylos.js';
 
 const GAMES = window.PYLOS_GAMES;

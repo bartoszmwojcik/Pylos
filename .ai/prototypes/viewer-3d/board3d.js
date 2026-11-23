@@ -11,11 +11,18 @@ const R = 0.5;                       // ball radius; balls on one level touch
 const LIFT = (2 * R) / Math.SQRT2;   // height gained per level in a square pyramid
 const PLATE = 5.3;
 const ICE = 0x8fdcff;
+// Base cups: round holes in the steel whose spherical floor is concentric with
+// a resting ball. The hole diameter at the surface stays 2 x 0.416, so a level-a
+// ball sinks until its centre is SINK above the surface.
+const HOLE = 0.416;
+const SINK = Math.sqrt(R * R - HOLE * HOLE);   // ≈ 0.277
+const CUP = R + 0.006;                         // floor radius, a hair larger than the ball
+const SLAB = 0.3;                              // thickness of the drilled top plate
 
 export function worldOf(id) {
   const s = squareOf(id);
   const n = 4 - s.level;
-  return new THREE.Vector3(s.col - (n + 1) / 2, R + s.level * LIFT, s.row - (n + 1) / 2);
+  return new THREE.Vector3(s.col - (n + 1) / 2, SINK + s.level * LIFT, s.row - (n + 1) / 2);
 }
 
 const PRESETS = {
@@ -38,13 +45,13 @@ function plateTexture() {
     g.beginPath(); g.moveTo(0, y); g.lineTo(S, y + (Math.random() - 0.5) * 4); g.stroke();
   }
   const px = (u) => ((u + PLATE / 2) / PLATE) * S; // world -> texture
-  // engraved cups for the 16 base squares
+  // a darker machined ring around each hole (the holes themselves are geometry)
   for (let r = 1; r <= 4; r++) for (let col = 1; col <= 4; col++) {
-    const x = px(col - 2.5), y = px(r - 2.5), rad = (0.41 / PLATE) * S;
-    const grad = g.createRadialGradient(x - rad * 0.2, y - rad * 0.2, rad * 0.1, x, y, rad);
-    grad.addColorStop(0, '#3a434b'); grad.addColorStop(0.8, '#4c565f'); grad.addColorStop(1, '#a9b4bd');
-    g.fillStyle = grad; g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = 'rgba(15,22,28,0.7)'; g.lineWidth = 3; g.stroke();
+    const x = px(col - 2.5), y = px(r - 2.5), rad = (HOLE / PLATE) * S;
+    g.strokeStyle = 'rgba(12,18,24,0.55)'; g.lineWidth = 7;
+    g.beginPath(); g.arc(x, y, rad + 4, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = 2;
+    g.beginPath(); g.arc(x, y, rad + 9, 0, Math.PI * 2); g.stroke();
   }
   // engraved frame and coordinates (row 1 at the back, column 1 on the left)
   g.strokeStyle = 'rgba(20,28,34,0.55)'; g.lineWidth = 4;
@@ -109,16 +116,44 @@ export class Board3D {
 
     // plate: a squarish block of steel with a brushed, engraved top
     const body = new THREE.Mesh(
-      new RoundedBoxGeometry(PLATE, 0.34, PLATE, 3, 0.05),
+      new RoundedBoxGeometry(PLATE, 0.16, PLATE, 3, 0.05),
       new THREE.MeshStandardMaterial({ color: 0x5f6870, metalness: 1, roughness: 0.38 }),
     );
-    body.position.y = -0.17; body.receiveShadow = true; scene.add(body);
-    const top = new THREE.Mesh(
-      new THREE.PlaneGeometry(PLATE - 0.1, PLATE - 0.1),
-      new THREE.MeshStandardMaterial({ map: plateTexture(), metalness: 0.85, roughness: 0.46 }),
-    );
-    top.rotation.x = -Math.PI / 2; top.position.y = 0.002; top.receiveShadow = true;
-    scene.add(top);
+    body.position.y = -SLAB - 0.04; body.receiveShadow = true; scene.add(body);
+
+    // drilled top plate: a square slab with 16 round holes cut through it
+    const W = PLATE - 0.1;
+    const outline = new THREE.Shape();
+    outline.moveTo(-W / 2, -W / 2); outline.lineTo(W / 2, -W / 2);
+    outline.lineTo(W / 2, W / 2); outline.lineTo(-W / 2, W / 2); outline.closePath();
+    for (let r = 1; r <= 4; r++) for (let c = 1; c <= 4; c++) {
+      const hole = new THREE.Path();
+      // shape y becomes -z after the slab is laid flat
+      hole.absarc(c - 2.5, -(r - 2.5), HOLE + 0.002, 0, Math.PI * 2, true);
+      outline.holes.push(hole);
+    }
+    const slabGeo = new THREE.ExtrudeGeometry(outline, { depth: SLAB, bevelEnabled: false, curveSegments: 48 });
+    const tex = plateTexture();
+    tex.repeat.set(1 / PLATE, 1 / PLATE); tex.offset.set(0.5, 0.5);
+    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    // group 0 = top/bottom faces (brushed, engraved), group 1 = outer edges and hole walls (plain steel)
+    const slab = new THREE.Mesh(slabGeo, [
+      new THREE.MeshStandardMaterial({ map: tex, metalness: 0.85, roughness: 0.46 }),
+      new THREE.MeshStandardMaterial({ color: 0x6b757e, metalness: 1, roughness: 0.34 }),
+    ]);
+    slab.rotation.x = -Math.PI / 2; slab.position.y = -SLAB;
+    slab.receiveShadow = true; slab.castShadow = true; scene.add(slab);
+
+    // the cups: the lower cap of a sphere centred where a resting ball's centre is,
+    // seen from inside. Its rim meets the surface exactly at the hole edge.
+    const theta0 = Math.acos(-SINK / CUP);
+    const cupGeo = new THREE.SphereGeometry(CUP, 48, 16, 0, Math.PI * 2, theta0, Math.PI - theta0);
+    const cupMat = new THREE.MeshStandardMaterial({ color: 0x3e4851, metalness: 1, roughness: 0.34, side: THREE.BackSide });
+    for (let r = 1; r <= 4; r++) for (let c = 1; c <= 4; c++) {
+      const cup = new THREE.Mesh(cupGeo, cupMat);
+      cup.position.set(c - 2.5, SINK, r - 2.5);
+      cup.receiveShadow = true; scene.add(cup);
+    }
 
     this.geo = new THREE.SphereGeometry(R * 0.985, 64, 40);
     this.mat = {

@@ -33,7 +33,11 @@ metallic, with sans-serif fonts and slightly squarish shapes.
   `prototype.js`, `comments.js` and its CSS. The product UI is in `viewer.css`,
   scoped to `.pv-app`.
 - `board3d.js`: three.js r170 (pinned, jsDelivr). The balls form a true square
-  pyramid: a level rises by 2r/√2. The plate is a brushed, engraved steel block.
+  pyramid: a level rises by 2r/√2. The plate is a brushed, engraved steel slab
+  with 16 drilled cups (owner feedback 2026-11-23: the painted holes did not look
+  real). Each cup is a spherical recess concentric with a resting ball, its rim
+  diameter is 0.83 of the ball's, so a level-a ball sinks in until its centre
+  is √(r² − 0.416²) ≈ 0.28 above the surface.
   The balls are polished silver (White) and gunmetal (Black). Lighting is a cool
   key light plus a blue rim light. There are four camera presets, and the
   visible levels can be limited to A, A–B or A–C to look inside the pyramid.
