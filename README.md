@@ -6,7 +6,9 @@ A Pylos rules engine in Haskell, built to be understood.
 - **The bitboard engine** (`bitboard/`) implements the same rules with bit masks, for speed. It is trusted only because it matches the reference on golden perft and playout values and on random positions.
 - **Why it is built this way:** `docs/adr/` holds one decision record per choice.
 
-Bots and the browser viewer are later work (backlog E04).
+- **Bots and a live 3D viewer** (`bots/`, `server/`, `web/`): random, greedy, alpha-beta and MCTS bots play each other, and you watch in a browser (E04).
+
+Human-vs-bot play is the next epic.
 
 ## Install (Ubuntu, headless)
 
@@ -117,8 +119,42 @@ reference/Pylos/Reference/   the reference engine (library "pylos")
 bitboard/Pylos/              the bitboard engine (internal library "bitboard")
   Bitboard.hs   positions as two Word32 masks
   Compare.hs    engine-against-engine comparison (divide)
-app/ref, app/bit             the pylos-ref and pylos-bit command lines
+bots/Pylos/                  the bots and the match runner (internal library "bots")
+server/Pylos/Server/         the live game server (internal library "server")
+web/                         the browser viewer (plain JS + vendored Three.js)
+app/                         pylos-ref, pylos-bit, pylos-match, pylos-web
 test/                        the test suite
 golden/                      frozen perft and playout values
 docs/adr/                    decision records
 ```
+
+## Bots and matches
+
+A bot is a one-line spec with at most one knob (D15):
+
+| Spec | What it does |
+|---|---|
+| `random` | a random legal move |
+| `greedy:reserve=10,free=1` | the best move one ply ahead; the weights for reserve and free-ball advantage |
+| `alphabeta:depth=3` | alpha-beta search, depth 1–6 (depth 3 ≈ 0.1 s per game, depth 4 a few seconds) |
+| `mcts:iterations=2000` | Monte Carlo tree search, 1–200000 iterations per move |
+
+```sh
+$(cabal list-bin pylos-match) alphabeta:depth=3 mcts:iterations=1000 10 300 games/
+```
+
+This plays 10 games with alternating colours, a 300-ply cap (a capped game is a draw), and writes each game to `games/` as a JSON record (`pylos-ref replay games/game-1.json`).
+
+## Watching games in the browser
+
+```sh
+$(cabal list-bin pylos-web) 8080 web     # serves http://localhost:8080 on 127.0.0.1 only
+```
+
+The server has no display, so open it from your laptop through an SSH tunnel:
+
+```sh
+ssh -N -L 8080:localhost:8080 prodesk1   # on the laptop; then browse to http://localhost:8080
+```
+
+Type a spec for each side (or pick an example), choose the delay between moves, and press Start. Drag to rotate the pyramid, scroll to zoom, right-drag to pan. `http://localhost:8080/?mock=1` runs the viewer with a built-in fake server. The API and the event stream are described in `docs/web-protocol.md`.

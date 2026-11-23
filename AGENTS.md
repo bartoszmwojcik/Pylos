@@ -13,7 +13,7 @@ Pylos is a personal learning project: an implementation of the Pylos board game.
 
 Product context lives in `.ai/specs/product-brief.md`. Read it before any feature work. Its Business rules (R01–R08), Non-goals (N01–N04) and Decisions (D01–D14) are the protected contract. The active rules are R03–R08. R01, R02 and N01 are superseded, but their rows are kept for history. Every row the current scope relies on is active and confirmed by the owner. The rules come from the owner's memory of the game. Whether they match the official rulebook is the untested assumption A01. The remaining open questions (Q02, Q03) block only Later work. The backlog is in `.ai/specs/backlog.md` (issues #1–#12 and #15).
 
-The toolchain (E01), the reference engine (E02) and the bitboard engine (E03) exist. Layout: `reference/` is the reference engine (cabal main library), `bitboard/` is the bitboard engine and the engine comparison (internal library `bitboard`), `app/` holds the `pylos-ref` and `pylos-bit` CLIs, `test/` the test suite, `golden/` the frozen perft and playout values, and `docs/adr/` the decision records. `README.md` has the install steps. GHC 9.10.1 and cabal come from ghcup (`source ~/.ghcup/env`). The system packages from the README (including `libgmp-dev`) are installed on this server.
+The toolchain (E01), the reference engine (E02) and the bitboard engine (E03) exist. Layout: `reference/` is the reference engine (cabal main library), `bitboard/` is the bitboard engine and the engine comparison (internal library `bitboard`), `bots/` the bots and match runner, `server/` the live game server, `web/` the browser viewer, `app/` holds the `pylos-ref`, `pylos-bit`, `pylos-match` and `pylos-web` executables, `test/` the test suite, `golden/` the frozen perft and playout values, and `docs/adr/` the decision records. `README.md` has the install steps. GHC 9.10.1 and cabal come from ghcup (`source ~/.ghcup/env`). The system packages from the README (including `libgmp-dev`) are installed on this server.
 
 ## Task routing
 
@@ -22,8 +22,8 @@ The toolchain (E01), the reference engine (E02) and the bitboard engine (E03) ex
 | Product idea, scope, "should we build this" | `SDLC.md` (Discovery, Intake) | Start with `om-brainstorm` / `om-discover`; no code before a routed decision. |
 | Game rules, moves, perft (reference engine) | `.ai/specs/product-brief.md` (R03–R08, D08, D09, D11, D12, D14) | Pure, readable code (D04, N04). Every rule function's Haddock comment cites the rule id it implements (D13). No performance tricks here. |
 | Bitboard engine | Product brief D05 and D11; the reference engine modules once they exist | Must match the reference golden perft and playout files. Reference modules never import bitboard modules. |
-| Bots, match runner | Product brief Scope (Later), Q03 | TODO: not yet specified |
-| Web server and viewer | Product brief D01, D03, Q02 | The backend serves the frontend. TODO: framework not yet chosen (Q02) |
+| Bots, match runner | Product brief D15, D12; `bots/`; `docs/adr/0022-bots.md` | Pure `chooseMove` on the bitboard engine; one knob per bot (D15); a capped game is a draw (D12). |
+| Web server and viewer | Product brief D16, D17; `docs/web-protocol.md`; `server/`, `web/`; `docs/adr/0023-web-server.md` | scotty + SSE, plain JS + vendored Three.js, no build step. Bind to 127.0.0.1 (N02). Change the protocol doc together with server and client. |
 | Decisions and explanations | `docs/adr/` (once created, D13) | Every non-obvious choice gets a decision record. A brief `proposal` is never recorded as accepted. |
 | A feature design | `SDLC.md`, `.ai/specs/` | Specs live in `.ai/specs/` as `{YYYY-MM-DD}-{kebab-case-title}.md`; briefs in `.ai/specs/briefs/`. |
 | Tests | `test/` (one tasty suite, grouped by story); `test/Gen.hs` for reachable positions | Engine behaviour ships with a QuickCheck property or HUnit rule test over reachable positions (`CODE_REVIEW.md`). |
