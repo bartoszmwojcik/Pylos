@@ -6,7 +6,9 @@
 //   * turn a square name like "b23" into (level, row, col),
 //   * know which squares support which (R08), to draw "placeable" markers,
 //   * split a move like "a11-b22 x a13 a14" into its parts,
-//   * and (for the mock server only) apply a move to a position.
+//   * apply a move to a position (the mock server plays its canned games with
+//     it, and the viewer rebuilds earlier positions for stepping back),
+//   * and find the shapes (R07) a move completed, to draw rings and text.
 
 // Levels a..d. Level index 0 is the 4x4 bottom, 3 is the single apex (R08).
 export const LEVELS = ['a', 'b', 'c', 'd'];
@@ -126,4 +128,86 @@ export function applyMove(position, text) {
     by,
     position: { ...position, squares, [reserveKey]: reserve, toMove: otherColour(by) },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Display helpers for the viewer (ported from the accepted design prototype,
+// .ai/prototypes/viewer-3d/pylos.js). Like applyMove they do NOT check
+// legality; they only describe moves the server already played.
+// ---------------------------------------------------------------------------
+
+/** "white" -> "White". */
+export const colourName = (colour) => colour[0].toUpperCase() + colour.slice(1);
+
+/**
+ * The shapes (R07) that the ball now on `sq` is part of, for `colour`:
+ * a 2x2 square of that colour on level a, b or c, or a complete horizontal
+ * or vertical row of 4 on level a. Returns [{ type: 'square'|'row'|'column',
+ * squares: [4 names] }]. The viewer draws thin rings on these balls.
+ */
+export function shapesThrough(squares, sq, colour) {
+  const { level, row, col } = parseSquare(sq);
+  const n = sideOf(level);
+  const mine = (name) => squares[name] === colour;
+  const found = [];
+  if (level <= 2) {
+    // Every 2x2 block that contains (row, col): its top-left corner is at
+    // (row-1 or row, col-1 or col), as long as the block fits on the level.
+    for (let r = Math.max(1, row - 1); r <= Math.min(n - 1, row); r++) {
+      for (let c = Math.max(1, col - 1); c <= Math.min(n - 1, col); c++) {
+        const block = [squareName(level, r, c), squareName(level, r, c + 1), squareName(level, r + 1, c), squareName(level, r + 1, c + 1)];
+        if (block.every(mine)) found.push({ type: 'square', squares: block });
+      }
+    }
+  }
+  if (level === 0) {
+    const line = (f) => [1, 2, 3, 4].map(f);
+    const across = line((c) => squareName(0, row, c));
+    const down = line((r) => squareName(0, r, col));
+    if (across.every(mine)) found.push({ type: 'row', squares: across });
+    if (down.every(mine)) found.push({ type: 'column', squares: down });
+  }
+  return found;
+}
+
+/**
+ * Every position of a game, from the start: history[0] is the empty board and
+ * history[k] is the position after ply k. Each entry is
+ *   { ply, position, move }   where move = null for ply 0, else
+ *   { text, kind, from, to, takeBack, by, shapes }.
+ * The server sends only the move texts and the CURRENT position, so the
+ * earlier positions are rebuilt here with applyMove (display only).
+ */
+export function buildHistory(moveTexts) {
+  const history = [{ ply: 0, position: startPosition(), move: null }];
+  for (const text of moveTexts) history.push(nextEntry(history[history.length - 1], text));
+  return history;
+}
+
+/** The history entry after playing `text` on `prev` (see buildHistory). */
+export function nextEntry(prev, text) {
+  const ev = applyMove(prev.position, text);
+  // Shapes are judged on the board right after the ball lands, before the
+  // take-backs (a ball taken back may itself have been part of the shape).
+  const landed = { ...prev.position.squares, [ev.action.to]: ev.by };
+  if (ev.action.from) delete landed[ev.action.from];
+  return {
+    ply: prev.ply + 1,
+    position: ev.position,
+    move: { text, ...ev.action, takeBack: ev.takeBack, by: ev.by, shapes: shapesThrough(landed, ev.action.to, ev.by) },
+  };
+}
+
+/** One sentence about a move, e.g. "White raised a31 to b23, completing square a11–a22." */
+export function describeMove(m) {
+  if (!m) return 'Start position. White to move.';
+  const who = colourName(m.by);
+  let s = m.kind === 'raise' ? `${who} raised ${m.from} to ${m.to}` : `${who} placed ${m.to}`;
+  if (m.shapes.length) {
+    const names = m.shapes.map((x) => `${x.type} ${x.squares[0]}–${x.squares[3]}`);
+    s += `, completing ${names.join(' and ')}`;
+  }
+  if (m.takeBack.length) s += `, and took back ${m.takeBack.join(' and ')}`;
+  else if (m.shapes.length) s += ', and took nothing back';
+  return `${s}.`;
 }
