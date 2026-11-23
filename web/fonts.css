@@ -1,0 +1,27 @@
+/* fonts.css — the three typefaces of the design, served from web/vendor/fonts/.
+ *
+ * Files: @fontsource packages, version 5.1.0 (the versions the accepted
+ * prototype used), latin subset only, downloaded once from jsDelivr:
+ *   https://cdn.jsdelivr.net/npm/@fontsource/<family>@5.1.0/files/<family>-latin-<weight>-normal.woff2
+ * All three are under the SIL Open Font License 1.1 (OFL-*.txt beside them).
+ *
+ *   Chakra Petch    500 600 700   UI labels, buttons, headings (squarish)
+ *   Barlow          400 600       running text
+ *   JetBrains Mono  400 500       move notation and bot specs
+ *
+ * font-display: swap shows the fallback font until the file has loaded.
+ */
+@font-face { font-family: "Chakra Petch"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url(vendor/fonts/chakra-petch-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "Chakra Petch"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url(vendor/fonts/chakra-petch-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Chakra Petch"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(vendor/fonts/chakra-petch-latin-700-normal.woff2) format("woff2"); }
+@font-face { font-family: "Barlow"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(vendor/fonts/barlow-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Barlow"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url(vendor/fonts/barlow-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(vendor/fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url(vendor/fonts/jetbrains-mono-latin-500-normal.woff2) format("woff2"); }

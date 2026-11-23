@@ -1,0 +1,34 @@
+/* tokens.css — the design tokens of the viewer: every colour, font stack and
+ * corner size that style.css uses, in one place.
+ *
+ * They come from the accepted prototype's viewer.css (.ai/prototypes/viewer-3d,
+ * the variables on .pv-app). The prototype's own tokens.css, theme.css and
+ * components.css are the generic scaffold of its review document (light/dark
+ * shadcn-like defaults), not part of the viewer's look, so they are not copied.
+ *
+ * The direction: cold and metallic. Steel greys with a blue cast (s-950 is the
+ * darkest, s-100 the lightest), one ice-blue accent, amber for warnings and
+ * red for errors. Corners are squarish: 2 px radii and a 10 px chamfer (the cut
+ * top-left corner of a panel).
+ */
+:root {
+  color-scheme: dark;
+
+  /* Steel greys, dark to light. */
+  --s-950: #080b0e; --s-900: #0d1115; --s-850: #12171c; --s-800: #182027;
+  --s-700: #222b33; --s-600: #2e3943; --s-500: #45525d; --s-400: #6c7a86;
+  --s-300: #97a4ae; --s-200: #c2cbd2; --s-100: #e4e9ed;
+
+  /* The accent (rings, active buttons, live state) and the status colours. */
+  --ice: #8fdcff; --ice-strong: #c4ecff; --ice-deep: #2f7fa6;
+  --amber: #f2b766; --red: #ff8a78; --green: #6fd6a8;
+
+  /* Shapes. */
+  --chamfer: 10px;
+  --radius: 2px;
+
+  /* Fonts (fonts.css loads them): squarish UI labels, plain text, notation. */
+  --f-ui: "Chakra Petch", "Bahnschrift", "DIN Alternate", "Barlow", system-ui, sans-serif;
+  --f-text: "Barlow", "Bahnschrift", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, monospace;
+}
