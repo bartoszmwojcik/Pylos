@@ -1,0 +1,7 @@
+-- The compiler is pinned (D10, docs/adr/0011-toolchain-ghc-cabal-tasty.md).
+-- Install it with: ghcup install ghc 9.10.1
+with-compiler: ghc-9.10.1
+
+packages: .
+
+tests: True

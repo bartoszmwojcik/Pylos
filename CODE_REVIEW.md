@@ -1,10 +1,10 @@
 # Code review rules
 
-These rules are applied by `om-code-review` in addition to its built-in checklist. The repository is greenfield. Add repo-specific checks here as conventions emerge in the code.
+These rules are applied by `om-code-review` in addition to its built-in checklist. Add repo-specific checks here as conventions emerge in the code.
 
 ## Priorities
 
-1. **Rule correctness.** Engine code must implement the Business rules in `.ai/specs/product-brief.md` (R01–R06) and the move definition D08 exactly.
+1. **Rule correctness.** Engine code must implement the Business rules in `.ai/specs/product-brief.md` (the active rules R03–R08, with D14) and the move definition D08 exactly.
    - A behaviour change to a rule needs a superseding row in the brief, approved by the owner.
    - It also needs an updated hand-built test for that rule.
 2. **Oracle integrity.**

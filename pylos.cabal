@@ -1,0 +1,111 @@
+cabal-version:      3.0
+name:               pylos
+version:            0.1.0.0
+synopsis:           A Pylos rules engine: a readable reference and a fast bitboard version
+description:
+  See README.md. The reference engine (the main library) is the oracle;
+  the bitboard engine (the internal library @bitboard@) is checked against it.
+license:            NONE
+author:             Pylos project owner
+build-type:         Simple
+extra-doc-files:    README.md
+extra-source-files: golden/*.json
+tested-with:        GHC ==9.10.1
+
+common warnings
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+
+-- The reference engine: pure, readable, the correctness oracle (D04, N04).
+-- It cannot import the bitboard engine: that library depends on this one,
+-- and cabal forbids cycles (docs/adr/0016-package-layout.md).
+library
+  import:           warnings
+  hs-source-dirs:   reference
+  exposed-modules:
+    Pylos.Reference.Board
+    Pylos.Reference.Golden
+    Pylos.Reference.Move
+    Pylos.Reference.Notation
+    Pylos.Reference.Perft
+    Pylos.Reference.Playout
+    Pylos.Reference.Random
+    Pylos.Reference.Record
+    Pylos.Reference.Rules
+    Pylos.Reference.Symmetry
+  build-depends:
+    , aeson       >=2.1 && <2.3
+    , base        >=4.20 && <4.21
+    , bytestring  >=0.11 && <0.13
+    , containers  >=0.6 && <0.8
+    , text        >=2.0 && <2.2
+  default-language: GHC2021
+
+-- The bitboard engine (D05) and the tools that compare it with the reference.
+library bitboard
+  import:           warnings
+  hs-source-dirs:   bitboard
+  exposed-modules:
+    Pylos.Bitboard
+    Pylos.Compare
+  build-depends:
+    , array
+    , base
+    , containers
+    , pylos
+  ghc-options:      -O2
+  default-language: GHC2021
+
+executable pylos-ref
+  import:           warnings
+  hs-source-dirs:   app/ref
+  main-is:          Main.hs
+  build-depends:
+    , aeson
+    , base
+    , bytestring
+    , pylos
+    , text
+  ghc-options:      -O2 -rtsopts
+  default-language: GHC2021
+
+executable pylos-bit
+  import:           warnings
+  hs-source-dirs:   app/bit
+  main-is:          Main.hs
+  build-depends:
+    , aeson
+    , base
+    , bytestring
+    , pylos
+    , pylos:bitboard
+    , text
+  ghc-options:      -O2 -rtsopts
+  default-language: GHC2021
+
+test-suite pylos-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  other-modules:
+    BitboardTests
+    Gen
+    GoldenTests
+    ReferenceTests
+    ToolchainTests
+  build-depends:
+    , aeson
+    , base
+    , bytestring
+    , containers
+    , directory         >=1.3 && <1.4
+    , filepath          >=1.4 && <1.6
+    , pylos
+    , pylos:bitboard
+    , QuickCheck        >=2.14 && <2.17
+    , tasty             >=1.4 && <1.6
+    , tasty-hunit       >=0.10 && <0.11
+    , tasty-quickcheck  >=0.10 && <0.12
+    , text
+  ghc-options:      -O1 -threaded -rtsopts -with-rtsopts=-N
+  default-language: GHC2021

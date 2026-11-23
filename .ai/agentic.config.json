@@ -6,7 +6,10 @@
     "provider": "agent-browser"
   },
   "validation": {
-    "commands": []
+    "commands": [
+      "cabal build all",
+      "cabal test all"
+    ]
   },
   "labels": {
     "enabled": true,

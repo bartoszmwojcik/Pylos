@@ -13,7 +13,7 @@ Pylos is a personal learning project: an implementation of the Pylos board game.
 
 Product context lives in `.ai/specs/product-brief.md`. Read it before any feature work. Its Business rules (R01–R08), Non-goals (N01–N04) and Decisions (D01–D14) are the protected contract. The active rules are R03–R08. R01, R02 and N01 are superseded, but their rows are kept for history. Every row the current scope relies on is active and confirmed by the owner. The rules come from the owner's memory of the game. Whether they match the official rulebook is the untested assumption A01. The remaining open questions (Q02, Q03) block only Later work. The backlog is in `.ai/specs/backlog.md` (issues #1–#12 and #15).
 
-The repository is greenfield. Today it holds only the installed agent skills (`.claude/skills/`, `.agents/skills/`, `skills-lock.json`) and the pipeline configuration under `.ai/`. No Haskell code exists yet, and the Haskell toolchain is not installed on the server yet. Backlog item E01-S01 (#5) covers both.
+The toolchain (E01), the reference engine (E02) and the bitboard engine (E03) exist. Layout: `reference/` is the reference engine (cabal main library), `bitboard/` is the bitboard engine and the engine comparison (internal library `bitboard`), `app/` holds the `pylos-ref` and `pylos-bit` CLIs, `test/` the test suite, `golden/` the frozen perft and playout values, and `docs/adr/` the decision records. `README.md` has the install steps. GHC 9.10.1 and cabal come from ghcup (`source ~/.ghcup/env`). The system packages from the README (including `libgmp-dev`) are installed on this server.
 
 ## Task routing
 
@@ -26,7 +26,7 @@ The repository is greenfield. Today it holds only the installed agent skills (`.
 | Web server and viewer | Product brief D01, D03, Q02 | The backend serves the frontend. TODO: framework not yet chosen (Q02) |
 | Decisions and explanations | `docs/adr/` (once created, D13) | Every non-obvious choice gets a decision record. A brief `proposal` is never recorded as accepted. |
 | A feature design | `SDLC.md`, `.ai/specs/` | Specs live in `.ai/specs/` as `{YYYY-MM-DD}-{kebab-case-title}.md`; briefs in `.ai/specs/briefs/`. |
-| Tests | TODO: no test suite yet (E01-S01) | Engine behaviour ships with a QuickCheck property or HUnit rule test over reachable positions (`CODE_REVIEW.md`). |
+| Tests | `test/` (one tasty suite, grouped by story); `test/Gen.hs` for reachable positions | Engine behaviour ships with a QuickCheck property or HUnit rule test over reachable positions (`CODE_REVIEW.md`). |
 | CI | TODO: no `.github/workflows/` yet | Mirror `validation.commands` in CI when it is added. |
 | Agent pipeline / process | `.ai/agentic.config.json`, `SDLC.md`, `.ai/trackers/github.md`, `.ai/browsers/agent-browser.md` | Change config and `SDLC.md` together; re-run `om-setup-agent-pipeline` when toolchain or labels change. |
 <!-- discovery:routing-start -->
@@ -42,10 +42,10 @@ The repository is greenfield. Today it holds only the installed agent skills (`.
 
 ## Validation commands
 
-None are configured yet: `validation.commands` is empty in `.ai/agentic.config.json`, because no toolchain exists. When E01-S01 (#5) lands, add these in order, both in the config and in `SDLC.md` → Validation gate:
+Configured in `.ai/agentic.config.json` and `SDLC.md` → Validation gate, in this order:
 
 - `cabal build all`
-- `cabal test all`
+- `cabal test all` (about 30 s; it recomputes the golden perft values with the reference engine)
 
 ## Pointers
 
