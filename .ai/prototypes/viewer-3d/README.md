@@ -11,7 +11,7 @@ metallic, with sans-serif fonts and slightly squarish shapes.
 
 - Verification: passed for the scope listed below. Run in agent-browser
   v0.41.1 (headless Chrome, SwiftShader WebGL) at 1440, 820 and 390 px.
-- Acceptance: **pending**. The owner has not reviewed this version.
+- Acceptance: **accepted** 2026-11-23 by the owner ("reviewed. please commit, push, merge"), version `4c3fb3f`. This accepts the visual direction only: Q02 (framework, live transport) stays open, and the brief is unchanged.
 - The hpylos page could not be fetched during design (web fetch was blocked).
   The 3D look follows the owner's description only, not the hpylos screenshots.
 
