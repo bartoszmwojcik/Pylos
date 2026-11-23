@@ -4,6 +4,7 @@ import System.Environment (lookupEnv)
 import Test.Tasty
 
 import qualified BitboardTests
+import qualified BotTests
 import qualified GoldenTests
 import qualified ReferenceTests
 import qualified ToolchainTests
@@ -18,4 +19,5 @@ main = do
       , ReferenceTests.tests
       , GoldenTests.tests
       , BitboardTests.tests
+      , BotTests.tests
       ]

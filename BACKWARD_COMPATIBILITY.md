@@ -8,4 +8,5 @@ The surfaces below come from `.ai/specs/product-brief.md`. Each becomes protecte
 | JSON game-record format (`version` 1, docs/adr/0017) | D09 | Removing or renaming fields, or changing the meaning of `moves` or `result` | The same as for notation, plus a version field bump |
 | Golden perft and playout files | D11 | Any change to a stored value | Only through an explained regeneration tied to an owner-approved rule or decision change |
 | `pylos-ref` and `pylos-bit` CLI commands and arguments | S1, S2 | Removing or renaming a command or flag, or changing its output format used by scripts | A deprecation note in the README for one release before removal |
-| HTTP routes and SSE events of the viewer | S4 (not yet specified) | TODO: define when S4 is specified | TODO |
+| HTTP routes and SSE events of the viewer (`docs/web-protocol.md`) | S4, D16 | Removing or renaming a route, an event or a JSON field, or changing its meaning | Change server and `web/` in the same PR and update `docs/web-protocol.md`; one user, so no deprecation period |
+| Bot spec strings (`alphabeta:depth=3`) | S3, D15 | Making a previously valid spec fail or mean something else | A superseding decision in the brief; old game records keep their spec text |

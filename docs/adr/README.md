@@ -26,5 +26,7 @@ Each record explains one choice and the reason for it. The product brief (`.ai/s
 | [0019](0019-playouts-pick-from-sorted-moves.md) | A playout picks its random move from the sorted move list | Proposed | D05, D11, D12 |
 | [0020](0020-bitboard-representation.md) | The bitboard representation | Proposed | D05, R03, R04, R07, R08 |
 | [0021](0021-dependencies.md) | Library dependencies | Proposed | D09, D10 |
+| [0022](0022-bots.md) | How the bots work | Accepted (D15); algorithms proposed | D15, D12 |
+| [0023](0023-web-server.md) | The live game server | Accepted (D16); structure proposed | D16, D17, N02 |
 
 Records 0002–0015 copy decisions the owner made in the brief. Records from 0016 on are implementation choices made while building the engines. They stay Proposed until the owner accepts them.
