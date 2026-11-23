@@ -79,7 +79,9 @@ Each event has a name (`event:`) and a JSON `data:` line.
    }
    ```
 
-   `action.kind` is `"place"` or `"raise"`. For a raise, `from` is the origin square.
+   `action.kind` is `"place"` or `"raise"`. For a raise, `from` is the origin square. `ply` is the 1-based number of this move in the game, so after the event the game has `ply` moves.
 3. `end`: once, when the game finishes. Data: `{"result": "white"}` (or `"black"` / `"capped"`).
 
-The server keeps the stream open after `end`, so the browser should close it itself.
+The server keeps the stream open after `end`, so the browser should close it itself. A watcher that connects to a game that has already finished gets only the `snapshot`, with `status: "finished"`. `end` is not sent again.
+
+Without an event for 15 seconds the server sends an SSE comment line (`: keep-alive`), which browsers ignore. Files under `/static/` are served with their content type (`.js` as `text/javascript`, which ES modules require).
