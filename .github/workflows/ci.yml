@@ -1,0 +1,68 @@
+# Continuous integration for Pylos.
+#
+# It runs the same validation gate as SDLC.md and .ai/agentic.config.json
+# (validation.commands): `cabal build all`, then `cabal test all`.
+# Why each choice was made: docs/adr/0024-ci-and-freeze-file.md.
+
+name: CI
+
+# Run on every pull request that targets main, and on every push to main
+# (a merged PR lands on main as a push, so main itself is checked too).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# If a new commit arrives on the same branch or PR while a run is still going,
+# stop the old run. Only the newest commit's result matters.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      # Get the repository's code onto the runner.
+      - uses: actions/checkout@v4
+
+      # Install GHC and cabal. GHC is pinned to 9.10.1, the same compiler
+      # cabal.project asks for (D10, docs/adr/0011). `id: setup` lets later
+      # steps read this step's outputs, such as where the cabal store is.
+      - uses: haskell-actions/setup@v2
+        id: setup
+        with:
+          ghc-version: '9.10.1'
+          cabal-version: 'latest'
+
+      # Download the Hackage package index. cabal.project.freeze pins an
+      # index-state, so the newer index cannot change which versions are used.
+      - run: cabal update
+
+      # Keep built dependencies between runs, so CI does not rebuild aeson and
+      # the other libraries every time.
+      #   cabal-store: compiled library dependencies (shared by all projects)
+      #   dist-newstyle: this project's own build output
+      # The key changes when the compiler or any dependency input changes, and
+      # then a fresh cache is saved. restore-keys lets a run with a new key
+      # start from the newest older cache for the same OS and GHC instead of
+      # from nothing.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ${{ steps.setup.outputs.cabal-store }}
+            dist-newstyle
+          key: ${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-${{ hashFiles('pylos.cabal', 'cabal.project', 'cabal.project.freeze') }}
+          restore-keys: |
+            ${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-
+
+      # Validation gate step 1. -Werror turns every compiler warning into an
+      # error, so new warnings cannot slip into main unnoticed. The code
+      # builds warning-free today.
+      - run: cabal build all --ghc-options=-Werror
+
+      # Validation gate step 2 (about 30 s; it recomputes the golden perft
+      # values). --test-show-details=direct prints each test's result live
+      # in the CI log, so a failure is readable without downloading files.
+      - run: cabal test all --test-show-details=direct

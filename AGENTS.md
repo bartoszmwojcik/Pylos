@@ -27,7 +27,7 @@ The toolchain (E01), the reference engine (E02) and the bitboard engine (E03) ex
 | Decisions and explanations | `docs/adr/` (once created, D13) | Every non-obvious choice gets a decision record. A brief `proposal` is never recorded as accepted. |
 | A feature design | `SDLC.md`, `.ai/specs/` | Specs live in `.ai/specs/` as `{YYYY-MM-DD}-{kebab-case-title}.md`; briefs in `.ai/specs/briefs/`. |
 | Tests | `test/` (one tasty suite, grouped by story); `test/Gen.hs` for reachable positions | Engine behaviour ships with a QuickCheck property or HUnit rule test over reachable positions (`CODE_REVIEW.md`). |
-| CI | TODO: no `.github/workflows/` yet | Mirror `validation.commands` in CI when it is added. |
+| CI | `.github/workflows/ci.yml`, `cabal.project.freeze`, `docs/adr/0024-ci-and-freeze-file.md` | CI mirrors `validation.commands` (build with `-Werror`, then test); change both together. Regenerate the freeze file only on purpose, with `cabal freeze`. |
 | Agent pipeline / process | `.ai/agentic.config.json`, `SDLC.md`, `.ai/trackers/github.md`, `.ai/browsers/agent-browser.md` | Change config and `SDLC.md` together; re-run `om-setup-agent-pipeline` when toolchain or labels change. |
 <!-- discovery:routing-start -->
 | Product discovery, a product brief, or a backlog | `.ai/specs/product-brief.md`, `.ai/specs/research/`, `.ai/specs/backlog.md`, `SDLC.md` → Definition of Ready and Product decisions as a protected contract | Non-goals, business rules and decisions in the brief are a protected contract — change them only with a superseding entry approved by their owner; synthetic personas are hypotheses, not evidence. |

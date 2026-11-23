@@ -265,7 +265,7 @@ Every PR passes the full validation gate before review sign-off, in this order:
 1. `cabal build all`
 2. `cabal test all`
 
-Any non-zero exit fails the gate and blocks the PR. The implementing skills run the gate before opening a PR, and `om-check-and-commit` runs it before pushing a hand-worked branch. The command list lives in `.ai/agentic.config.json`; when it changes, update it there and in this section together.
+Any non-zero exit fails the gate and blocks the PR. The implementing skills run the gate before opening a PR, and `om-check-and-commit` runs it before pushing a hand-worked branch. The command list lives in `.ai/agentic.config.json`; when it changes, update it there and in this section together, and in `.github/workflows/ci.yml`, which runs the same gate on every PR to `main` and every push to `main` (with `-Werror` on the build). Dependency versions are pinned by `cabal.project.freeze`, so local runs and CI resolve the same packages.
 
 ## Amending this process
 
