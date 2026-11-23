@@ -4,45 +4,110 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pylos viewer</title>
-  <!-- The server serves this page at / and every other file of web/ under /static/. -->
+  <!-- The server serves this page at / and every other file of web/ under /static/.
+       Everything is local: fonts and three.js are vendored in /static/vendor/. -->
+  <link rel="stylesheet" href="/static/fonts.css">
+  <link rel="stylesheet" href="/static/tokens.css">
   <link rel="stylesheet" href="/static/style.css">
   <script type="module" src="/static/app.js"></script>
 </head>
-<body>
-  <aside id="left">
-    <h1>Pylos <span id="mock-badge" class="badge" hidden>mock</span></h1>
+<body class="pv-app">
+  <!-- Icons, drawn once and reused with <svg><use href="#pv-…"/></svg>. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <symbol id="pv-first" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14l-10-7z"/></symbol>
+    <symbol id="pv-prev" viewBox="0 0 24 24" fill="currentColor"><path d="M17 5v14L7 12z"/></symbol>
+    <symbol id="pv-next" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l10-7z"/></symbol>
+    <symbol id="pv-last" viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l10-7z"/></symbol>
+    <symbol id="pv-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></symbol>
+    <symbol id="pv-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v1.5"/></symbol>
+    <symbol id="pv-plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M9 2v5M15 2v5M6 7h12v5a6 6 0 0 1-12 0zM12 18v4"/><path d="M3 3l18 18"/></symbol>
+    <symbol id="pv-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></symbol>
+    <symbol id="pv-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M5 22V3h13l-3 4.5 3 4.5H5"/></symbol>
+  </defs></svg>
 
-    <form id="new-game">
-      <h2>New game</h2>
-      <label for="white">White bot</label>
-      <input id="white" name="white" spellcheck="false" autocomplete="off">
-      <select id="white-examples" aria-label="White bot examples"></select>
+  <header class="pv-top">
+    <span class="pv-brand"><span class="pv-mark" aria-hidden="true"><i></i><i></i><i></i></span>PYLOS</span>
+    <span id="mock-badge" class="pv-pill" hidden>Mock</span>
+    <span class="pv-file" id="top-game"></span>
+    <span class="pv-server" id="server-status"><i aria-hidden="true"></i><span id="server-text">connecting</span></span>
+  </header>
 
-      <label for="black">Black bot</label>
-      <input id="black" name="black" spellcheck="false" autocomplete="off">
-      <select id="black-examples" aria-label="Black bot examples"></select>
+  <div class="pv-layout">
+    <!-- Left: start a game, pick a game. -->
+    <aside class="pv-left">
+      <form id="new-game" class="pv-panel pv-form">
+        <h2 class="pv-h3">New game</h2>
+        <label for="white">White bot</label>
+        <input id="white" name="white" spellcheck="false" autocomplete="off">
+        <select id="white-examples" aria-label="White bot examples"></select>
 
-      <div class="row">
-        <div>
-          <label for="delay">Delay (ms)</label>
-          <input id="delay" name="delay" type="number" min="0" step="100" value="800">
+        <label for="black">Black bot</label>
+        <input id="black" name="black" spellcheck="false" autocomplete="off">
+        <select id="black-examples" aria-label="Black bot examples"></select>
+
+        <div class="pv-form-row">
+          <div>
+            <label for="delay">Delay (ms)</label>
+            <input id="delay" name="delay" type="number" min="0" step="100" value="800">
+          </div>
+          <div>
+            <label for="plycap">Ply cap</label>
+            <input id="plycap" name="plycap" type="number" min="1" value="300">
+          </div>
         </div>
-        <div>
-          <label for="plycap">Ply cap</label>
-          <input id="plycap" name="plycap" type="number" min="1" value="300">
+        <button id="start" type="submit" class="pv-btn pv-btn-primary">Start</button>
+        <div id="form-error" class="pv-error" role="alert"></div>
+      </form>
+
+      <section class="pv-panel pv-games">
+        <h2 class="pv-h3">Games</h2>
+        <div id="list-error" class="pv-error"></div>
+        <ul id="games" class="pv-gamelist"></ul>
+      </section>
+    </aside>
+
+    <!-- Centre: the 3D board with its controls laid over it. -->
+    <section class="pv-stage" aria-label="Board">
+      <div id="board" class="pv-canvas" tabindex="0"
+           aria-label="3D board. Drag to orbit, scroll to zoom, arrow keys step through the moves."></div>
+      <div class="pv-hud pv-hud-tl">
+        <div class="pv-seg" role="group" aria-label="Camera">
+          <button type="button" data-cam="perspective" aria-pressed="true">Perspective</button><button type="button" data-cam="top" aria-pressed="false">Top</button><button type="button" data-cam="side" aria-pressed="false">Side</button><button type="button" data-cam="corner" aria-pressed="false">Corner</button>
         </div>
       </div>
-      <button id="start" type="submit">Start</button>
-      <div id="form-error" class="error" role="alert"></div>
-    </form>
+      <div class="pv-hud pv-hud-tr">
+        <span class="pv-hud-label">Levels</span>
+        <div class="pv-seg" role="group" aria-label="Visible levels">
+          <button type="button" data-lv="0" aria-pressed="false">A</button><button type="button" data-lv="1" aria-pressed="false">A–B</button><button type="button" data-lv="2" aria-pressed="false">A–C</button><button type="button" data-lv="3" aria-pressed="true">All</button>
+        </div>
+      </div>
+      <div id="tip" class="pv-tip" role="status" hidden></div>
+      <!-- The slim bar shown while you look at an earlier ply ("Jump to live"). -->
+      <div id="behind" class="pv-banner pv-banner-neutral pv-banner-slim" hidden></div>
+      <div class="pv-transport">
+        <div class="pv-transport-btns">
+          <button type="button" class="pv-icbtn" data-act="first" aria-label="Start position"><svg class="pv-ic" aria-hidden="true"><use href="#pv-first"/></svg></button>
+          <button type="button" class="pv-icbtn" data-act="prev" aria-label="Previous move"><svg class="pv-ic" aria-hidden="true"><use href="#pv-prev"/></svg></button>
+          <button type="button" class="pv-icbtn" data-act="next" aria-label="Next move"><svg class="pv-ic" aria-hidden="true"><use href="#pv-next"/></svg></button>
+          <button type="button" class="pv-icbtn" data-act="last" aria-label="Newest move"><svg class="pv-ic" aria-hidden="true"><use href="#pv-last"/></svg></button>
+        </div>
+        <input id="ply-range" class="pv-range" type="range" min="0" max="0" value="0" aria-label="Ply">
+        <span id="ply-text" class="pv-ply pv-num">0 / 0</span>
+        <button type="button" id="follow" class="pv-pill pv-pill-live pv-follow" data-act="follow" hidden><i></i><span>Live</span></button>
+        <span id="finished-pill" class="pv-pill" hidden>Finished</span>
+      </div>
+    </section>
 
-    <h2>Games</h2>
-    <div id="list-error" class="error"></div>
-    <ul id="games"></ul>
-  </aside>
-
-  <main id="board" title="Drag to rotate, wheel to zoom, right-drag to pan"></main>
-
-  <aside id="panel"></aside>
+    <!-- Right: the watched game. app.js fills these in. -->
+    <aside class="pv-side" id="panel">
+      <section id="status" class="pv-status" hidden></section>
+      <section id="players" class="pv-panel pv-players" aria-label="Players"></section>
+      <section id="current" class="pv-panel pv-current" aria-live="polite"></section>
+      <section class="pv-panel pv-moves">
+        <div class="pv-moves-head"><h3 class="pv-h3">Moves</h3><span class="pv-muted pv-small">D09 notation</span></div>
+        <ol id="moves" class="pv-movelist"></ol>
+      </section>
+    </aside>
+  </div>
 </body>
 </html>

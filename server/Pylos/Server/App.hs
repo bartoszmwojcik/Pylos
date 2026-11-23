@@ -170,4 +170,5 @@ mimeType path = case takeExtension path of
   ".json" -> "application/json"
   ".png" -> "image/png"
   ".svg" -> "image/svg+xml"
+  ".woff2" -> "font/woff2"
   _ -> "application/octet-stream"
