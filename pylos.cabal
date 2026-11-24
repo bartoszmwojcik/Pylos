@@ -162,6 +162,7 @@ test-suite pylos-test
     Gen
     GoldenTests
     ReferenceTests
+    ServerTests
     ToolchainTests
     WebArgs
     WebArgsTests

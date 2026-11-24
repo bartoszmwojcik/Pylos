@@ -120,7 +120,7 @@ serverTests =
     "E04-S03 server (D16)"
     [ testCase "a game's events extend its snapshot to the final position" $ do
         mgr <- newManager
-        Right gid <- startGame mgr (NewGame RandomBot RandomBot 0 300)
+        Right gid <- startGame mgr (NewGame (Bot RandomBot) (Bot RandomBot) 0 300)
         Just lg <- lookupGame mgr gid
         (st0, chan) <- watch lg
         events <- collectEvents chan
