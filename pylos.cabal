@@ -142,8 +142,10 @@ executable pylos-web
   import:           warnings
   hs-source-dirs:   app/web
   main-is:          Main.hs
+  other-modules:    WebArgs
   build-depends:
     , base
+    , network
     , pylos:server
     , warp        >=3.3 && <3.5
   ghc-options:      -O2 -threaded -rtsopts "-with-rtsopts=-N"
@@ -152,7 +154,7 @@ executable pylos-web
 test-suite pylos-test
   import:           warnings
   type:             exitcode-stdio-1.0
-  hs-source-dirs:   test
+  hs-source-dirs:   test, app/web
   main-is:          Main.hs
   other-modules:
     BitboardTests
@@ -161,6 +163,8 @@ test-suite pylos-test
     GoldenTests
     ReferenceTests
     ToolchainTests
+    WebArgs
+    WebArgsTests
   build-depends:
     , aeson
     , base
