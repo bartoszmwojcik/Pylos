@@ -1,33 +1,38 @@
 # Pylos — product brief
 
-- Date: 2026-11-22 (refreshed 2026-11-22; Q02 and Q03 answered 2026-11-23)
-- Mode: own; Owner: project owner; Pass: full (refresh, three interview rounds with the owner)
-- Evidence basis: two sources, both from the owner. The first is the owner's direct account of their situation and goals. The second is the owner's answers in this refresh session (three rounds), which settle every game rule and confirm the agent's design proposals. The owner is the only intended user, so no claim is made about other users. Several rules began as agent proposals that the owner then confirmed, and R06 and D08 are accepted agent recommendations. The rule answers come from the owner's memory of the game, not from a rulebook that was read. They define the rules this project implements. Whether they match the official Gigamic rules is the most consequential untested belief (A01).
-- Coverage: 41 claims — 33 sourced (interview 6, data 0, document 26, product 1, benchmark 0), 0 synthetic, 8 assumed; 0 entries on the collection plan
+- Date: 2026-11-22 (refreshed 2026-11-22; Q02 and Q03 answered 2026-11-23; S5 refresh 2026-11-24)
+- Mode: own; Owner: project owner; Pass: full (refresh, three interview rounds with the owner on 2026-11-22; a further refresh of three rounds on 2026-11-24 for S5)
+- Evidence basis: all sources come from the owner. The first is the owner's direct account of their situation and goals. The second is the owner's answers in the 2026-11-22 refresh session (three rounds), which settle every game rule and confirm the agent's design proposals. The third is the owner's answers on 2026-11-23 (bots and viewer) and 2026-11-24 (human-vs-bot play). The owner is the only user with a recorded account. The owner also wants the game to be playable by "anyone who installs this game"; no such person is named or interviewed, so nothing is claimed about their needs (A05). Several rules began as agent proposals that the owner then confirmed, and R06 and D08 are accepted agent recommendations. The rule answers come from the owner's memory of the game, not from a rulebook that was read. They define the rules this project implements. Whether they match the official Gigamic rules is the most consequential untested belief (A01).
+- Coverage: 60 claims — 48 sourced (interview 9, data 0, document 35, product 4, benchmark 0), 0 synthetic, 12 assumed; 0 entries on the collection plan
 - Synthetic hypotheses outside Coverage: 0
-- Definition of Ready signed by: not yet signed. Ready for: implementation planning of the stated Now scope, once the backlog issues are updated to the new rule ids (see the Definition of Ready addendum).
-- Sources: `.ai/specs/research/interviews/2026-11-22-owner-account.md`, `.ai/specs/research/decisions/2026-11-22-owner-direction.md`, `.ai/specs/research/decisions/2026-11-22-owner-rules-and-proposals.md`, `.ai/specs/briefs/2026-11-22-pylos-reference-engine.md`, `.ai/specs/backlog.md`
+- Definition of Ready signed by: not yet signed. Ready for: a backlog for S5 (see the Definition of Ready addendum).
+- Sources: `.ai/specs/research/interviews/2026-11-22-owner-account.md`, `.ai/specs/research/decisions/2026-11-22-owner-direction.md`, `.ai/specs/research/decisions/2026-11-22-owner-rules-and-proposals.md`, `.ai/specs/research/decisions/2026-11-23-owner-bots-and-viewer.md`, `.ai/specs/research/decisions/2026-11-24-owner-human-vs-bot.md`, `.ai/specs/briefs/2026-11-22-pylos-reference-engine.md`, `.ai/specs/backlog.md`
 
 ## Decision summary
 
-The owner is building a Pylos game engine in Haskell. A readable reference engine comes first, then a fast bitboard engine that is checked against it. Bots and a browser viewer for watching them follow (D01–D05). The owner is the only user. They develop on a headless server, so games have to be watched in a browser. They also want to understand the code and why it is built that way (P01–P02).
+The owner is building Pylos in Haskell as a learning project: a readable reference engine, a bitboard engine checked against it, bots, and a 3D browser viewer served by the same backend (D01–D05, D15–D17). The owner develops on a headless server, so games are watched in a browser (P01). They also want to understand the code and why it is built that way (P02). The rules are the owner's remembered rules (R03–R08, D08, D14); whether they match the official game is untested (A01).
 
-This refresh settles the rules the engine encodes. Taking balls back after completing a shape is optional, 0–2 balls in total per move (R07). A complete horizontal or vertical row of 4 on the bottom level is a shape, as well as a 2×2 square (R07, R08, D14), so the earlier non-goal N01 is superseded. An empty reserve loses (R05). A raise goes only upward and never onto a square the ball supports (R03). Take-backs happen one at a time (R04). The engine has no draw rule: the match runner's ply cap stops endless games (R06). The compound move (D08) and the earlier proposals D09–D13 and N02–N04 are now confirmed, so no rule or decision in Now is still a proposal. R06 and D08 began as agent recommendations, which the owner accepted.
+The toolchain, both engines, the bots, the match runner and the live viewer are built and merged (E01–E04, closed 2026-11-24).
 
-**Now** is the toolchain and the two engines. Bots, the web viewer and human play are **Later**.
+This refresh moves **S5, human-vs-bot play, into Now**. The owner wants to play the bots themselves to judge how good the bot's evaluation is, to get better at the game, and to feel how the different bots play (P04). S5 is one human against one bot in the browser. Only legal moves are accepted, and there is no undo (D18). The play screen works on a phone and on a large screen, and the two may lay out differently (D19). So that a phone can reach the server, the server gets an opt-in way to listen on the home network. The default stays 127.0.0.1, and there are still no accounts and no internet deployment (D20, N05 superseding N02). Other people install it by building from source (D21).
 
-The rules come from the owner's memory. Perft counts and properties only prove that the two engines agree with each other, not that they follow the official game (A01). Backlog issue #8 still has an acceptance criterion requiring 1 or 2 take-backs, which contradicts R07.
+To help judge the evaluation, S5 includes a small **training mode**, chosen when a game starts. After each move it shows how the bot scores the position. A real game shows nothing (D22). A fuller analysis, such as the bot's best moves with their scores, stays later. Also later: human vs human, taking over a side mid-game, undo, an easier install, and replay.
 
-Next action: update backlog issues #2 and #5–#12 to the new ids and confirmed statuses, then start the toolchain story #5. The owner may compare the rules with the rulebook before the golden values are frozen (A01). This is optional.
+Unknowns that do not block S5: whether anyone besides the owner will install it (A05), and whether a phone on the home network can actually reach this server. The owner says the server is on the same home network, but has not tried it (A06). The first S5 story checks it, and phone play depends on it. The detailed input design (how a raise and a take-back are entered by tap or click) is an agent proposal for the S5 spec (Key flows).
+
+Next action: build the S5 backlog (`om-backlog --dry-run` first).
 
 ## Vision
 
 The owner wants a Pylos implementation they fully understand, whose bots they can develop and then watch play each other in a web browser. This is the owner's intended direction, not a demonstrated benefit. `[INTERVIEW]` owner account 2026-11-22
 
+The owner also wants to play the bots themselves, and wants the game to be playable by anyone who installs it. `[DOCUMENT]` owner-human-vs-bot 2026-11-24
+
 ## Target group and stakeholders
 
 - Customer (pays): none. This is a personal project. `[DOCUMENT]` owner-direction
 - User (uses): the project owner, developing on a server without a display. `[INTERVIEW]` owner account 2026-11-22
+- Intended future users: people who build the game from source and play it against a bot. The owner chose this audience, but no such person is named and nothing is known about their needs (A05). `[DOCUMENT]` owner-human-vs-bot 2026-11-24
 - Stakeholders (decides, blocks, operates): the owner, in every role.
 - Decider for scope decisions: the project owner
 
@@ -36,6 +41,7 @@ The owner wants a Pylos implementation they fully understand, whose bots they ca
 - P01 — The owner develops on a headless server, so a local GUI cannot show bot games. A demo has to be watchable over the web. `[INTERVIEW]` owner account 2026-11-22
 - P02 — The owner wants to understand the code and the reasons for its decisions, not only to obtain a working engine. `[INTERVIEW]` owner account 2026-11-22
 - P03 — An optimised engine needs an independent correctness oracle, otherwise its bugs go unnoticed. This is the owner's stated rationale for the reference-then-bitboard order. `[INTERVIEW]` owner account 2026-11-22
+- P04 — The owner wants to play them to judge whether the bot's position evaluation is good, to improve their own play, and to get a feel for how the different bots play. `[DOCUMENT]` owner-human-vs-bot 2026-11-24. That no human can play today is a repository fact: the web protocol has no move command (`docs/web-protocol.md`). The first sentence is the agent's framing of why watching is not enough. `[PRODUCT]` repository
 
 ## Product and how it stands out
 
@@ -51,6 +57,7 @@ Benchmarks are deferred because they do not inform the current decision.
 
 - Business goal: none. This is a personal learning project.
 - User outcome: the owner watches a bot-vs-bot game in a browser and can explain why each engine part is built the way it is. `[INTERVIEW]` owner account 2026-11-22
+- User outcome (S5): the owner plays a full game against any bot spec, on a laptop and on a phone, entering only legal moves, and the game ends with a result. The phone part depends on A06. `[ASSUMPTION]` agent proposal, derived from D18–D20
 - Primary metric: deferred. No numeric target was given, and none is needed for the current choice.
 - What must not get worse: the bitboard engine must match the reference engine on the frozen perft and playout golden values (D05, D11). `[DOCUMENT]` owner-rules-and-proposals
 
@@ -63,10 +70,17 @@ Benchmarks are deferred because they do not inform the current decision.
   - Decision records for every choice (D13).
   - S3, bots (random, greedy, alpha-beta, MCTS, one knob each) and a match runner with a ply cap (D02, D12, D15). Added 2026-11-23.
   - S4, a live 3D web viewer of bot-vs-bot games served by the backend (D01, D03, D16, D17). Added 2026-11-23.
+  - S1–S4 are built and merged (E01–E04). `[PRODUCT]` repository, `main` at `08bfd92`
+  - S5, human-vs-bot play in the browser: one human against one bot, legal moves only, no undo (D18); phone and large-screen layouts (D19); opt-in home-network listening (D20, N05); install by building from source (D21); an optional training mode that shows the bot's score (D22). Moved from Next on 2026-11-24.
 - **Next:**
-  - S5, human-vs-bot play in the browser. The owner expects it soon, so S3 and S4 are designed for it (D16).
+  - Nothing is planned yet.
 - **Later:**
   - Replay of recorded games in the viewer (not requested for S4, D17).
+  - A fuller view of what the bot thinks, such as its best few moves with their scores, or scores from every bot kind on the same scale. S5's training mode (D22) is the small first version.
+  - Human vs human on one browser, and taking over one side of a running bot game (not chosen for S5, D18).
+  - Undo (excluded from S5, D18).
+  - An easier install, such as a prebuilt binary or a container (D21).
+  - Deeper alpha-beta search, up to depth 9 (#29).
 - **Not doing:** see Non-goals.
 
 ## Domain glossary
@@ -84,12 +98,21 @@ Benchmarks are deferred because they do not inform the current decision.
 
 ## Key flows
 
-- Current state: no Haskell code and no Haskell toolchain exist yet. The repository holds the agent skills, the pipeline configuration, and the filed backlog #1–#12. `[PRODUCT]` repository and `.ai/specs/backlog.md`
+- Historical state (2026-11-22): no Haskell code and no Haskell toolchain existed yet. The repository holds the agent skills, the pipeline configuration, and the filed backlog #1–#12. `[PRODUCT]` repository and `.ai/specs/backlog.md`
 - Future state (Now):
   - The owner runs `cabal test`, which runs the properties and rule tests.
   - The owner runs the perft CLI on a position and gets matching counts from both engines.
   - The owner reads the decision records next to the code.
   - `[ASSUMPTION]` agent proposal
+- Current state (2026-11-24): the engines, bots, `pylos-match` and the live 3D viewer exist. The viewer only watches bot games, and the server listens only on 127.0.0.1. `[PRODUCT]` repository, `docs/web-protocol.md`
+- Future state (S5), to be settled in the S5 spec:
+  1. The owner opens the viewer on a laptop, or on a phone on the home network (D20).
+  2. They start a game as "you vs bot": they pick their colour, the bot spec, and a real or training game (D22).
+  3. On their turn they place a ball by tapping or clicking a legal empty square, or raise by choosing one of their free balls and then a legal higher square. Only legal choices respond (D18).
+  4. When the move completes a shape, they choose 0, 1 or 2 of their own free balls to take back and confirm (R07, R04).
+  5. The move is sent to the server; the bot replies; both moves appear on the same event stream (D16). In a training game, the bot's score appears after each move.
+  6. The game ends with a win, a loss or the ply cap (R05, D12).
+  - `[ASSUMPTION]` agent proposal; steps 3–4 are the input design the spec must work out for both touch and mouse
 
 ## Business rules
 
@@ -109,9 +132,10 @@ Benchmarks are deferred because they do not inform the current decision.
 | Id | We are not building | Why | Owner | Status | Review by | Required path to change | Source | Supersedes |
 |---|---|---|---|---|---|---|---|---|
 | N01 | The "lines" rule variant. Only a variant hook in the rules type is built. | It keeps the oracle small. | project owner | superseded by D14 | — | — | `[ASSUMPTION]` agent proposal | none |
-| N02 | Online multiplayer, accounts or public deployment | One user on one server | project owner | active | before S4 | owner | `[DOCUMENT]` owner-rules-and-proposals | none |
+| N02 | Online multiplayer, accounts or public deployment | One user on one server | project owner | superseded by N05 | — | — | `[DOCUMENT]` owner-rules-and-proposals | none |
 | N03 | A database or persistence beyond game-record files | Records are files (D09) | project owner | active | before S3 | owner | `[DOCUMENT]` owner-rules-and-proposals | none |
 | N04 | Performance work in the reference engine | Readability first (D04, D06); speed belongs in S2 | project owner | active | none | owner | `[DOCUMENT]` owner-rules-and-proposals | none |
+| N05 | Online multiplayer, accounts, or deployment reachable from the internet. Listening on the home network is allowed only when the owner turns it on (D20); the default stays 127.0.0.1. | The owner allowed the home network for phone play (D20) and kept no accounts. That each player runs their own copy is the agent's reading of "anyone who installs this game" (D21). | project owner | active | before any feature that needs a second player or internet access | owner approves a superseding row | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | N02 |
 
 ## Decisions
 
@@ -131,9 +155,14 @@ Benchmarks are deferred because they do not inform the current decision.
 | D12 | 2026-11-22 | S1 provides a bounded random playout that returns an outcome or `Capped`. The draw-by-ply-cap policy lives in the S3 runner. | R06. This began as an agent recommendation, confirmed as written by the owner. | project owner | active | before S3 | owner | `[DOCUMENT]` owner-rules-and-proposals | none |
 | D13 | 2026-11-22 | Every decision gets a decision record in `docs/adr/`. Every rule function's Haddock documentation cites the rule id it implements. | P02. This began as an agent recommendation, confirmed as written by the owner; literate Haskell was the alternative. Whether it works for the owner is A02. | project owner | active | A02 | owner | `[DOCUMENT]` owner-rules-and-proposals | none |
 | D14 | 2026-11-22 | The engine implements the row rule: a complete horizontal or vertical row of 4 on level a triggers the take-back (R07). It is part of the standard rules, not a variant behind a hook. | The owner's rule answer; the owner approved replacing N01 and R01's exclusion of the lines rule. | project owner | active | A01 | owner | `[DOCUMENT]` owner-rules-and-proposals | N01 |
-| D15 | 2026-11-23 | The bots are random, greedy, alpha-beta and MCTS. Each has at most one knob: the evaluation weights for greedy, the search depth for alpha-beta, the iteration count for MCTS. A bot is written as a one-line spec (`alphabeta:depth=3`), so any two configurations can play each other. Greedy and alpha-beta share one evaluation function. Bots run on the bitboard engine. | Owner's answer to Q03, choosing "fewer knobs" over a richer set of parameters per bot. How bots are judged (win rate, Elo) is not decided; the match runner reports wins, losses and draws. | project owner | active | before S5 | owner | `[INTERVIEW]` owner answers 2026-11-23 | none |
-| D16 | 2026-11-23 | The web stack is scotty on warp. The server serves plain JavaScript ES modules with a vendored Three.js and no build step. Commands go up as HTTP requests, and game updates come down over Server-Sent Events. Human moves (S5) will be one more `POST` on the same stream, so no WebSocket is needed. | Owner accepted the agent's proposal on 2026-11-23, with the note that human-vs-bot play comes soon. scotty is the most readable Haskell web library; SSE fits one-way watching and also serves S5 with a POST; Three.js gives 3D without a JS toolchain. servant and WebSockets were rejected as more to learn for no current need. | project owner | active | before S5 | owner | `[INTERVIEW]` owner answers 2026-11-23 | none |
-| D17 | 2026-11-23 | The viewer shows live games in 3D. Replay of recorded games is not part of S4. | Owner's answer to Q02: "live games, 3D". | project owner | active | before S5 | owner | `[INTERVIEW]` owner answers 2026-11-23 | none |
+| D15 | 2026-11-23 | The bots are random, greedy, alpha-beta and MCTS. Each has at most one knob: the evaluation weights for greedy, the search depth for alpha-beta, the iteration count for MCTS. A bot is written as a one-line spec (`alphabeta:depth=3`), so any two configurations can play each other. Greedy and alpha-beta share one evaluation function. Bots run on the bitboard engine. | Owner's answer to Q03, choosing "fewer knobs" over a richer set of parameters per bot. How bots are judged (win rate, Elo) is not decided; the match runner reports wins, losses and draws. | project owner | active | reviewed for S5 on 2026-11-24, unchanged | owner | `[INTERVIEW]` owner answers 2026-11-23 | none |
+| D16 | 2026-11-23 | The web stack is scotty on warp. The server serves plain JavaScript ES modules with a vendored Three.js and no build step. Commands go up as HTTP requests, and game updates come down over Server-Sent Events. Human moves (S5) will be one more `POST` on the same stream, so no WebSocket is needed. | Owner accepted the agent's proposal on 2026-11-23, with the note that human-vs-bot play comes soon. scotty is the most readable Haskell web library; SSE fits one-way watching and also serves S5 with a POST; Three.js gives 3D without a JS toolchain. servant and WebSockets were rejected as more to learn for no current need. | project owner | active | reviewed for S5 on 2026-11-24, unchanged | owner | `[INTERVIEW]` owner answers 2026-11-23 | none |
+| D17 | 2026-11-23 | The viewer shows live games in 3D. Replay of recorded games is not part of S4. | Owner's answer to Q02: "live games, 3D". | project owner | active | reviewed for S5 on 2026-11-24, unchanged | owner | `[INTERVIEW]` owner answers 2026-11-23 | none |
+| D18 | 2026-11-24 | S5 is one human against one bot in the browser. Only legal moves can be entered; there is no undo. | P04. The owner chose "just me as a player" over human vs human on one browser and over taking over a side mid-game; those two are Later. "only legal move is possible. no undo." How a game is set up (a "human" player kind next to the bot specs, ADR 0023; the human picking the bot and their colour) is an agent proposal for the S5 spec. | project owner | active | before the S5 spec | owner | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | none |
+| D19 | 2026-11-24 | The play screen works on a phone and on a large screen. The two may use different layouts, and input works by touch and by mouse. | The owner's words: "UX should be intuitive, so I assume mobile phone and big screen can be a bit different." What "intuitive" means in detail is for the S5 spec and its design pass. | project owner | active | before the S5 spec | owner | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | none |
+| D20 | 2026-11-24 | The server keeps listening on 127.0.0.1 by default. An explicit start-up option makes it listen on the home network, so a phone on the same network can play. There are no accounts and no authentication. | A phone cannot reach 127.0.0.1 on the server. The agent proposed the option because, in the agent's view, an SSH tunnel is awkward on a phone. The owner answered "whatever technically in home network is feasible", delegating the technical choice. While the option is on, anyone on the same network can open the game and start or play games with no password; the owner accepted that: "it's ok." | project owner | active | A06 | owner | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | none |
+| D21 | 2026-11-24 | People other than the owner install the game by building it from source, as the README describes. An easier install is Later. | The owner's answer: "yes full build for now". It was an agent recommendation; no other player is known yet (A05). | project owner | active | A05 | owner | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | none |
+| D22 | 2026-11-24 | A game against a bot is started either as a real game or as a training game. In a training game, the screen shows after each move how the bot scores the position. Greedy and alpha-beta show the shared evaluation (alpha-beta its search score), MCTS its win rate for the move it chose, and random shows nothing. A real game shows no bot information. The mode is fixed when the game starts. | P04: the owner wants to judge whether the bot's evaluation is good. The owner asked for a small version that can be turned off: "propose a small version of it. it should be possible though to disable it in order to have choice of real game or training one". The details (which score, fixed at start rather than toggled mid-game) are an agent proposal. Fixing the mode at start keeps a real game free of hints. A fuller view (best moves with scores) is Later. | project owner | active | before the S5 spec | owner | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | none |
 
 ## Riskiest assumptions
 
@@ -141,8 +170,10 @@ Benchmarks are deferred because they do not inform the current decision.
 |---|---|---|---|---|---|---|---|---|
 | A01 | The owner's remembered rules (R03, R04, R05, R07, R08) match the official Gigamic rules. `[ASSUMPTION]` owner's memory | medium | The owner answered from memory on 2026-11-22; no rulebook was read. The engine follows the owner's chosen rules either way. | Both engines encode the same non-official rule and pass every differential check. That matters only if the owner wants the official game. | Read the printed or publisher's rulebook and compare R03, R04, R05, R07, R08 and D14 one by one. | project owner | before golden values are frozen (#10) | untested |
 | A02 | Decision records plus Haddock rule citations make the code understandable to the owner. `[ASSUMPTION]` agent proposal | medium | The owner read the decision records and the reference rules module on 2026-11-23. | P02 is not met, and the documentation style must change. | The owner reads the first decision record and the first rules module, then says what was unclear. | project owner | after first S1 story | confirmed 2026-11-23: the owner can read the rules and the code (#6) |
-| A03 | ghcup with GHC 9.10 installs and builds on the headless server. `[ASSUMPTION]` agent proposal | medium | No Haskell tools are found on the PATH. | The toolchain decision D10 changes (for example to nix or stack). | Install it and run `cabal build` and `cabal test` on a hello-world project with QuickCheck. | project owner | first task | untested |
+| A03 | ghcup with GHC 9.10 installs and builds on the headless server. `[ASSUMPTION]` agent proposal | medium | No Haskell tools were on the PATH on 2026-11-22. | The toolchain decision D10 changes (for example to nix or stack). | Install it and run `cabal build` and `cabal test` on a hello-world project with QuickCheck. | project owner | first task | confirmed: E01 installed GHC 9.10.1 through ghcup, and `cabal build all` and `cabal test all` pass on the server and in CI (`main` at `08bfd92`) |
 | A04 | Random-play games end, by a win or the cap, within a few hundred plies. `[ASSUMPTION]` agent proposal | low | none | The ply cap and the playout bound need retuning. | Run 10,000 seeded playouts in S1 and look at the length distribution. | project owner | during S1 | untested |
+| A05 | People other than the owner will install the game and play it. `[ASSUMPTION]` owner's belief | low | The owner said "anyone who installs this game"; no such person is named. | Only the owner plays. D21 and the phone layout still serve the owner, so S5 does not change. | Note whether anyone asks for or installs it; no test is planned. | project owner | none | untested |
+| A06 | A phone on the owner's home network can reach the headless server when D20's option is on. `[ASSUMPTION]` agent proposal | medium | The owner says the server is on the same home network as the phone ("yes. this is assumption for now", 2026-11-24). It has not been tried; a firewall could still block it. The owner reaches the server today through an SSH tunnel from a laptop (README). | Phone play needs another route (a tunnel, or a different network setup), and D20 needs revisiting. | Start the server with the option and open it from the phone; this is part of the first S5 story. | project owner | first S5 story | untested |
 
 ## Kill criteria
 
@@ -162,6 +193,8 @@ None. No synthetic material was used.
 | Q04 | Which GitHub repository (or other tracker) will hold the backlog? | No | project owner | closed: the backlog is filed as #1–#12 in the project's GitHub repository (`.ai/specs/backlog.md`) |
 | Q05 | Clarify open points OP1–OP9, listed in `.ai/specs/briefs/2026-11-22-pylos-reference-engine.md` under "Open points for om-discover". | No | project owner, via `om-discover --refresh` | partly answered 2026-11-22: OP1, OP2, OP3, OP4 principle (D11), OP7 toolchain (D10), OP8 (D13). OP9 is settled by the Scope confirmed with this brief. OP5 and OP6 remain as Q03 and Q02; OP7's web layer and frontend remain with Q02. |
 | Q06 | Confirm or correct R04 (free ball; take-backs in order) and R06 (no draw rule in the engine). | No | project owner | closed 2026-11-22: both confirmed (R04, R06) |
+| Q07 | Is there anyone specific expected to install and play the game? | No | project owner | open; asked 2026-11-24 and not answered. Affects only A05 and D21. |
+| Q08 | How a raise and a take-back are entered on touch and on mouse, and what the phone layout looks like. | No; it is settled in the S5 spec, not in this brief. | S5 spec, with the owner's review | open |
 
 ## Definition of Ready addendum (own)
 
@@ -169,7 +202,11 @@ P01–P03 and the target group (the owner alone) rest on the owner's direct acco
 
 Every rule and decision that Now relies on (R03–R08, D08–D14, N02–N04) is active, with the owner as decider. The rules come from the owner's memory. Their match with the official game is untested (A01). The owner sets the rules for this personal project, so that does not block the work. No blocking question is open.
 
-Ready for: implementation planning of the toolchain, S1 and S2 (#5–#12). Issues #2, #7, #8 and #10 cite the superseded R01, R02 or N01, and #5–#12 all say they are not ready until the proposals are confirmed (#6 still lists D13 as a proposal). #8's criterion "every move from that square carries 1 or 2 take-backs" contradicts R07. Those issues need updating before implementation (`om-auto-manage-issues`). The brief itself is not the blocker.
+Ready for (2026-11-22, now historical; S1–S4 are built): implementation planning of the toolchain, S1 and S2 (#5–#12). Issues #2, #7, #8 and #10 cite the superseded R01, R02 or N01, and #5–#12 all say they are not ready until the proposals are confirmed (#6 still lists D13 as a proposal). #8's criterion "every move from that square carries 1 or 2 take-backs" contradicts R07. Those issues need updating before implementation (`om-auto-manage-issues`). The brief itself is not the blocker.
+
+**S5 refresh, 2026-11-24.** P04 rests on the owner's own account of what they want from playing the bots. The S5 user is the owner. The wider audience in Target group is the owner's choice, not evidence (A05), and S5 does not depend on it. Expected outcome and check: the S5 user outcome in Goals. Out of scope: the Later items in Scope and N05. D18–D22 and N05 are active, with the owner as decider. No blocking question is open: Q07 does not block, and Q08 belongs to the S5 spec. A06 rests on the owner's statement only and is checked by the first S5 story; the phone stories depend on it.
+
+Ready for: a backlog for S5 (`om-backlog --dry-run`), and an S5 spec that works out the input design (Q08). Implementation touches protected surfaces: the web protocol (`docs/web-protocol.md`, a new `POST /api/games/:id/move`, a human player kind and the training-mode score in move events), the bot interface (a bot must also return its score for D22; `chooseMove` today returns only a move) and the 127.0.0.1 rule in `AGENTS.md` and ADR 0023, which N05 and D20 change to "127.0.0.1 by default".
 
 ## Collection plan
 

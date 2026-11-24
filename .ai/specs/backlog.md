@@ -2,7 +2,7 @@
 
 ## .ai/specs/product-brief.md
 Backlog source: .ai/specs/product-brief.md
-Last filed: 2026-11-23 (E04 stories #18–#21 added after Q02/Q03 were answered)
+Last filed: 2026-11-24 (E05 #30 with stories #31–#35 and parked E06 #36 added after the S5 refresh; E01–E04 are closed)
 
 | Id | Issue | Title | Epic | Depends on | Adopted |
 |---|---|---|---|---|---|
@@ -10,6 +10,8 @@ Last filed: 2026-11-23 (E04 stories #18–#21 added after Q02/Q03 were answered)
 | E02 | [#2](https://github.com/bartoszmwojcik/Pylos/issues/2) | Reference engine (S1) | — | — | no |
 | E03 | [#3](https://github.com/bartoszmwojcik/Pylos/issues/3) | Bitboard engine (S2) | — | — | no |
 | E04 | [#4](https://github.com/bartoszmwojcik/Pylos/issues/4) | Bots and live 3D viewer (S3, S4) | — | — | no |
+| E05 | [#30](https://github.com/bartoszmwojcik/Pylos/issues/30) | Human-vs-bot play (S5) | — | — | no |
+| E06 | [#36](https://github.com/bartoszmwojcik/Pylos/issues/36) | Later | — | — | no |
 | E01-S01 | [#5](https://github.com/bartoszmwojcik/Pylos/issues/5) | The owner can build and test the project on the headless server | #1 | — | no |
 | E01-S02 | [#6](https://github.com/bartoszmwojcik/Pylos/issues/6) | The owner can read why the project is built the way it is | #1 | E01-S01 | no |
 | E02-S01 | [#7](https://github.com/bartoszmwojcik/Pylos/issues/7) | The owner can build any board position and see it printed | #2 | E01-S01 | no |
@@ -23,3 +25,8 @@ Last filed: 2026-11-23 (E04 stories #18–#21 added after Q02/Q03 were answered)
 | E04-S02 | [#19](https://github.com/bartoszmwojcik/Pylos/issues/19) | The owner can run a match between two bots and read the score | #4 | E04-S01 | no |
 | E04-S03 | [#20](https://github.com/bartoszmwojcik/Pylos/issues/20) | The owner can start and follow a live bot game through the web server | #4 | E04-S01 | no |
 | E04-S04 | [#21](https://github.com/bartoszmwojcik/Pylos/issues/21) | The owner can watch a live bot game in 3D in the browser | #4 | E04-S03 | no |
+| E05-S01 | [#31](https://github.com/bartoszmwojcik/Pylos/issues/31) | The owner can start the server so a phone on the home network can open it | #30 | — | no |
+| E05-S02 | [#32](https://github.com/bartoszmwojcik/Pylos/issues/32) | The owner can play a full game against a bot through the server | #30 | — | no |
+| E05-S03 | [#33](https://github.com/bartoszmwojcik/Pylos/issues/33) | The owner can play a bot in the 3D viewer with a mouse on a large screen | #30 | E05-S02 | no |
+| E05-S04 | [#34](https://github.com/bartoszmwojcik/Pylos/issues/34) | The owner can play a bot on a phone by touch | #30 | E05-S01, E05-S03 | no |
+| E05-S05 | [#35](https://github.com/bartoszmwojcik/Pylos/issues/35) | The owner can choose a training game and see the bot's score after each move | #30 | E05-S03 | no |
