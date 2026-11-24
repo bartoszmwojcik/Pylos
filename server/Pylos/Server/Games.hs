@@ -15,6 +15,12 @@
 -- transaction sees that it is no longer the human's turn. The game thread
 -- meanwhile waits inside STM ('retry') until the turn passes to the bot.
 -- See @docs/adr/0025-human-play-protocol.md@.
+--
+-- __Training games__ (D22). In a training game the bot also says how it
+-- scores the position after every move, its own and the human's, as
+-- @score@ events. A real game sends none, and its bot only calls
+-- 'chooseMove'. The bot plays the same moves in both. See the Server
+-- section of @docs/adr/0026-bot-scores.md@.
 module Pylos.Server.Games
   ( Manager
   , newManager
@@ -45,6 +51,7 @@ import Control.Concurrent.STM
 import Control.Exception (evaluate)
 import Control.Monad (void, when)
 import Data.Aeson
+import Data.Foldable (traverse_)
 import Data.List (find)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
@@ -83,6 +90,9 @@ data NewGame = NewGame
   , ngDelayMs :: Int
   -- ^ the pause before each bot move, only in bot-vs-bot games
   , ngPlyCap :: Int
+  , ngTraining :: Bool
+  -- ^ a training game (D22): the bot's scores are sent. Only with a human
+  -- player; fixed for the whole game.
   }
 
 -- | The colour the human plays, if any.
@@ -103,11 +113,16 @@ data GameState = GameState
   -- ^ newest first
   , gsPosition :: B.BPosition
   , gsResult :: Maybe GameResult
+  , gsScore :: Maybe (Int, BotScore)
+  -- ^ the newest score of a training game, with the ply it scores (the
+  -- position after that many moves). Always 'Nothing' in a real game.
   }
 
 -- | What a watcher is told.
 data Event
   = MoveEvent Value
+  | ScoreEvent Value
+  -- ^ training games only (D22)
   | EndEvent GameResult
 
 -- | One game.
@@ -162,7 +177,7 @@ waitingFor ng st
 -- | Start a game in a new thread. Fails when too many games are running.
 startGame :: Manager -> NewGame -> IO (Either String Int)
 startGame mgr ng = do
-  initial <- newTVarIO (GameState [] B.startPosition Nothing)
+  initial <- newTVarIO (GameState [] B.startPosition Nothing Nothing)
   chan <- newBroadcastTChanIO
   result <- atomically $ do
     games <- readTVar (mGames mgr)
@@ -203,31 +218,66 @@ runGame lg = loop
               mover = sideToMove p
           case playerOf ng mover of
             Human -> loop g -- unreachable: 'waitingFor' returned Nothing
-            Bot bot -> case chooseMove bot g p of
-              Nothing -> finish DrawByCap -- unreachable (R05)
-              Just (m, g') -> do
-                -- Think in this thread, not inside the STM transaction.
-                _ <- evaluate m
-                -- In a human game the bot answers at once (ADR 0025).
-                when (humanSide ng == Nothing) $ threadDelay (ngDelayMs ng * 1000)
-                -- It is the bot's turn, so nobody else can have changed
-                -- the state since we read it.
-                void (atomically (publish lg st m))
-                loop g'
+            Bot bot -> do
+              let ply = length (gsMoves st)
+                  -- In a training game, the bot scores the position the
+                  -- human's move led to. Sides alternate, so a move before
+                  -- the bot's turn is the human's.
+                  scoreHuman = ngTraining ng && ply > 0
+                  -- Alpha-beta's score of that position is the root value
+                  -- of the search it is about to run, so it comes with the
+                  -- move below: one search, not two. The other bots score
+                  -- it at once: a cheap evaluation, or no score at all.
+                  early = scoreHuman && not (isAlphaBeta bot)
+              when early $ do
+                s <- evaluate (scorePosition bot p)
+                atomically (publishScore lg ply s)
+              case think bot g p of
+                Nothing -> finish DrawByCap -- unreachable (R05)
+                Just (m, g', score) -> do
+                  -- Think in this thread, not inside the STM transaction.
+                  _ <- evaluate m
+                  _ <- traverse evaluate score
+                  -- In a human game the bot answers at once (ADR 0025).
+                  when (humanSide ng == Nothing) $ threadDelay (ngDelayMs ng * 1000)
+                  -- It is the bot's turn, so nobody else can have changed
+                  -- the state since we read it. The human's score, the
+                  -- move and the bot's score go out in one transaction.
+                  atomically $ do
+                    when (scoreHuman && not early) $ traverse_ (publishScore lg ply) score
+                    void (publish lg m)
+                    traverse_ (publishScore lg (ply + 1)) score
+                  loop g'
+    -- A real game asks only for the move (D22). 'chooseMove' is
+    -- 'chooseMoveScored' with the score dropped, so the move and the
+    -- generator are the same in both kinds of game (ADR 0026).
+    think bot g p
+      | ngTraining ng = (\(m, g', s) -> (m, g', Just s)) <$> chooseMoveScored bot g p
+      | otherwise = (\(m, g') -> (m, g', Nothing)) <$> chooseMove bot g p
+    isAlphaBeta (AlphaBetaBot _) = True
+    isAlphaBeta _ = False
     finish r = atomically $ do
       modifyTVar' (lgState lg) (\s -> s {gsResult = Just r})
       writeTChan (lgEvents lg) (EndEvent r)
 
 -- | Apply a move to a game and tell the watchers, in one transaction.
 -- Returns the data of the @move@ event.
-publish :: LiveGame -> GameState -> B.BMove -> STM Value
-publish lg st m = do
+publish :: LiveGame -> B.BMove -> STM Value
+publish lg m = do
+  st <- readTVar (lgState lg)
   let p = gsPosition st
       p' = B.applyMove m p
       ev = moveEventJson (length (gsMoves st) + 1) (sideToMove p) m p'
   writeTVar (lgState lg) st {gsMoves = m : gsMoves st, gsPosition = p'}
   writeTChan (lgEvents lg) (MoveEvent ev)
   pure ev
+
+-- | Record and broadcast the bot's score of the position after @ply@
+-- moves (training games only).
+publishScore :: LiveGame -> Int -> BotScore -> STM ()
+publishScore lg ply s = do
+  modifyTVar' (lgState lg) (\st -> st {gsScore = Just (ply, s)})
+  writeTChan (lgEvents lg) (ScoreEvent (plyScoreJson ply s))
 
 -- | Why a posted move was refused. The game is unchanged in every case.
 data MoveRejected
@@ -276,7 +326,7 @@ submitMove lg text = atomically $ do
   st <- readTVar (lgState lg)
   case checkHumanMove (lgSetup lg) st text of
     Left why -> pure (Left why)
-    Right m -> Right <$> publish lg st m
+    Right m -> Right <$> publish lg m
 
 lookupGame :: Manager -> Int -> IO (Maybe LiveGame)
 lookupGame mgr gid = Map.lookup gid <$> readTVarIO (mGames mgr)
@@ -303,6 +353,7 @@ common lg st =
   , "result" .= resultJson (gsResult st)
   , "plyCap" .= ngPlyCap ng
   , "delayMs" .= ngDelayMs ng
+  , "training" .= ngTraining ng
   ]
   where
     ng = lgSetup lg
@@ -314,6 +365,7 @@ snapshotJson lg st =
     common lg st
       ++ [ "moves" .= map (T.pack . renderMove . B.toRefMove) (reverse (gsMoves st))
          , "position" .= positionJson (gsPosition st)
+         , "score" .= fmap (uncurry plyScoreJson) (gsScore st)
          ]
 
 -- | A game summary (docs/web-protocol.md).

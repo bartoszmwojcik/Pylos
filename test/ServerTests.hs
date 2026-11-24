@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Tests of human-vs-bot play on the server (E05-S02, #32; D18, ADR 0025).
+-- | Tests of human-vs-bot play on the server (E05-S02, #32; D18, ADR 0025),
+-- and of training games (E05-S05, #35; D22, ADR 0026).
 --
 -- Most tests drive the game manager ("Pylos.Server.Games") directly; a few
 -- go through HTTP to check the routes and status codes.
@@ -8,6 +9,8 @@ module ServerTests (tests) where
 
 import Control.Concurrent.STM
 import Data.Aeson (Value (..))
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.Aeson.Key as Key
 import qualified Data.Aeson.KeyMap as KM
 import Network.HTTP.Types (methodPost)
@@ -24,9 +27,15 @@ import Pylos.Reference.Board (Colour (..))
 import Pylos.Reference.Notation (renderMove)
 import Pylos.Server.App (application)
 import Pylos.Server.Games
+import Pylos.Server.Json (scoreJson)
 
 tests :: TestTree
-tests = testGroup "E05-S02 human-vs-bot play on the server (D18)" [managerTests, ruleTests, httpTests]
+tests =
+  testGroup
+    "E05 human-vs-bot play on the server"
+    [ testGroup "E05-S02 human-vs-bot play (D18)" [managerTests, ruleTests, httpTests]
+    , trainingTests
+    ]
 
 -- ---------------------------------------------------------------------------
 -- The game manager
@@ -36,7 +45,7 @@ managerTests =
   testGroup
     "game manager"
     [ testCase "a human game waits for the human, then the bot replies to a legal move" $ do
-        lg <- start (NewGame Human (Bot RandomBot) 5000 300)
+        lg <- start (NewGame Human (Bot RandomBot) 5000 300 False)
         st0 <- readTVarIO (lgState lg)
         waitingFor (lgSetup lg) st0 @?= Just White
         (_, chan) <- watch lg
@@ -52,7 +61,7 @@ managerTests =
         [field "by" v | MoveEvent v <- evs] @?= [Just (String "white"), Just (String "black")]
         map (renderMove . B.toRefMove) (reverse (gsMoves st)) !! 0 @?= "a11"
     , testCase "a bot that plays first moves at once, then waits for the human" $ do
-        lg <- start (NewGame (Bot RandomBot) Human 5000 300)
+        lg <- start (NewGame (Bot RandomBot) Human 5000 300 False)
         st <- waitPlies lg 1
         waitingFor (lgSetup lg) st @?= Just Black
         humanSide (lgSetup lg) @?= Just Black
@@ -62,7 +71,7 @@ managerTests =
         _ <- waitPlies lg 3
         pure ()
     , testCase "negative: illegal and malformed moves leave the game unchanged" $ do
-        lg <- start (NewGame Human (Bot RandomBot) 0 300)
+        lg <- start (NewGame Human (Bot RandomBot) 0 300 False)
         st0 <- readTVarIO (lgState lg)
         r1 <- submitMove lg "b11" -- level 2 has no support yet (R03)
         r2 <- submitMove lg "zz9"
@@ -75,7 +84,7 @@ managerTests =
     , testCase "negative: two moves posted at once: exactly one is accepted" $ do
         -- The bot is slow enough that it is still thinking when the second
         -- move arrives, so the second must be refused as out of turn.
-        lg <- start (NewGame Human (Bot (MctsBot 5000)) 0 300)
+        lg <- start (NewGame Human (Bot (MctsBot 5000)) 0 300 False)
         r1 <- submitMove lg "a11"
         r2 <- submitMove lg "a12"
         either (assertFailure . show) (const (pure ())) r1
@@ -83,13 +92,13 @@ managerTests =
           Left (NotYourTurn Black) -> pure ()
           other -> assertFailure ("expected NotYourTurn Black, got " ++ show (fmap (const ()) other))
     , testCase "negative: a bot-vs-bot game refuses moves" $ do
-        lg <- start (NewGame (Bot RandomBot) (Bot RandomBot) 1000 300)
+        lg <- start (NewGame (Bot RandomBot) (Bot RandomBot) 1000 300 False)
         r <- submitMove lg "a11"
         case r of
           Left NoHuman -> pure ()
           _ -> assertFailure "a bot-vs-bot game accepted a move"
     , testCase "a full game ends with an end event, and records human as a player" $ do
-        lg <- start (NewGame Human (Bot (GreedyBot defaultWeights)) 0 12)
+        lg <- start (NewGame Human (Bot (GreedyBot defaultWeights)) 0 12 False)
         (_, chan) <- watch lg
         final <- playOut lg
         gsResult final @?= Just DrawByCap
@@ -110,7 +119,7 @@ managerTests =
           _ -> assertFailure "a finished game accepted a move"
     , testCase "a game waiting for the human does not count against the running limit" $ do
         mgr <- newManager
-        ids <- mapM (const (startGame mgr (NewGame Human (Bot RandomBot) 0 300))) [1 .. maxRunning + 2]
+        ids <- mapM (const (startGame mgr (NewGame Human (Bot RandomBot) 0 300 False))) [1 .. maxRunning + 2]
         all isRight ids @? "a waiting human game was counted as running"
     ]
   where
@@ -126,18 +135,18 @@ ruleTests =
     [ testCase "take-backs may be written in any order" $ do
         -- Build a position where White completes a square a11 a12 a21 a22
         -- (level 1) and may take back two balls.
-        let ng = NewGame Human (Bot RandomBot) 0 300
+        let ng = NewGame Human (Bot RandomBot) 0 300 False
             moves = ["a11", "a44", "a12", "a43", "a21", "a34"]
             st = foldl step start0 moves
             step s t = case checkHumanMoveAny s t of
-              Right m -> GameState (m : gsMoves s) (B.applyMove m (gsPosition s)) Nothing
+              Right m -> GameState (m : gsMoves s) (B.applyMove m (gsPosition s)) Nothing Nothing
               Left err -> error err
         fmap (renderMove . B.toRefMove) (checkHumanMove ng st "a22 x a12 a11") @?= Right "a22 x a11 a12"
     , testCase "negative: out of turn names the side to move" $ do
-        let ng = NewGame (Bot RandomBot) Human 0 300
+        let ng = NewGame (Bot RandomBot) Human 0 300 False
         checkHumanMove ng start0 "a11" @?= Left (NotYourTurn White)
     , testCase "negative: a game at its ply cap is finished even before the thread ends it" $ do
-        let ng = NewGame Human (Bot RandomBot) 0 0
+        let ng = NewGame Human (Bot RandomBot) 0 0 False
         checkHumanMove ng start0 "a11" @?= Left GameFinished
     , testCase "players are parsed and rendered" $ do
         parsePlayer "human" @?= Right Human
@@ -146,7 +155,7 @@ ruleTests =
         map renderPlayer [Human, Bot (AlphaBetaBot 3)] @?= ["human", "alphabeta:depth=3"]
     ]
   where
-    start0 = GameState [] B.startPosition Nothing
+    start0 = GameState [] B.startPosition Nothing Nothing
     -- Look a move up among the legal moves, whoever is to move.
     checkHumanMoveAny s t =
       case [m | m <- B.legalMoves (gsPosition s), renderMove (B.toRefMove m) == t] of
@@ -201,8 +210,117 @@ httpTests =
   where
     testApp :: IO Application
     testApp = newManager >>= \m -> application m "web"
-    postJson path body =
-      srequest (SRequest (setPath defaultRequest {requestMethod = methodPost} path) body)
+
+postJson :: BS.ByteString -> BL.ByteString -> Session SResponse
+postJson path body =
+  srequest (SRequest (setPath defaultRequest {requestMethod = methodPost} path) body)
+
+-- ---------------------------------------------------------------------------
+-- Training games (E05-S05, D22)
+
+trainingTests :: TestTree
+trainingTests =
+  testGroup
+    "E05-S05 training games (D22)"
+    [ testCase "same seed: the bot plays the same moves in a training and a real game" $
+        -- A fresh manager numbers its first game 1, and the game id is the
+        -- seed, so both games use the same random numbers. The scripted
+        -- human always plays the first legal move.
+        mapM_ sameGame [GreedyBot defaultWeights, MctsBot 100, AlphaBetaBot 2, RandomBot]
+    , testCase "greedy: every ply is scored with the shared evaluation" $ do
+        let bot = GreedyBot defaultWeights
+        (final, evs) <- played (NewGame Human (Bot bot) 0 10 True)
+        let scores = scoreEvents evs
+        map fst scores @?= [1 .. 10]
+        -- After each ply, human's or bot's, the score is greedy's
+        -- evaluation of the position after that ply.
+        let positions = scanl (flip B.applyMove) B.startPosition (reverse (gsMoves final))
+        map snd scores @?= map (scoreJson . scorePosition bot) (drop 1 positions)
+    , testCase "alpha-beta: the human's ply gets the score of the bot's one search" $ do
+        (_, evs) <- played (NewGame Human (Bot (AlphaBetaBot 2)) 0 8 True)
+        let scores = scoreEvents evs
+        map fst scores @?= [1 .. 8]
+        -- The position after the human's move and the one after the bot's
+        -- reply get the same value: the root value of the bot's search.
+        let pairs = [(a, b) | ((p, a), (_, b)) <- zip scores (drop 1 scores), odd p]
+        length pairs @?= 4
+        all (uncurry (==)) pairs @? ("scores differ: " ++ show scores)
+        all (isKind "eval" . snd) scores @? "not an eval score"
+    , testCase "mcts: a win rate after its own moves, none after the human's" $ do
+        (_, evs) <- played (NewGame Human (Bot (MctsBot 100)) 0 6 True)
+        let scores = scoreEvents evs
+        map fst scores @?= [1 .. 6]
+        all (isKind "none" . snd) [s | s@(p, _) <- scores, odd p] @? show scores
+        all (isKind "winRate" . snd) [s | s@(p, _) <- scores, even p] @? show scores
+    , testCase "random, playing first: every ply has the none score" $ do
+        (_, evs) <- played (NewGame (Bot RandomBot) Human 0 5 True)
+        let scores = scoreEvents evs
+        map fst scores @?= [1 .. 5]
+        all (isKind "none" . snd) scores @? show scores
+    , testCase "each score event follows the move it scores" $ do
+        (_, evs) <- played (NewGame Human (Bot (AlphaBetaBot 2)) 0 4 True)
+        map tag evs @?= ["move 1", "score 1", "move 2", "score 2", "move 3", "score 3", "move 4", "score 4", "end"]
+    , testCase "the snapshot has the training flag and the newest score" $ do
+        (lg, final) <- playedGame (NewGame Human (Bot (GreedyBot defaultWeights)) 0 4 True)
+        let snap = snapshotJson lg final
+        field "training" snap @?= Just (Bool True)
+        (field "score" snap >>= field "ply") @?= Just (Number 4)
+        (field "score" snap >>= field "score" >>= field "kind") @?= Just (String "eval")
+        field "training" (summaryJson lg final) @?= Just (Bool True)
+    , testCase "negative: a real game sends no score and its snapshot has none" $ do
+        (lg, final, evs) <- playedWithEvents (NewGame Human (Bot (AlphaBetaBot 2)) 0 6 False)
+        scoreEvents evs @?= []
+        length [() | MoveEvent _ <- evs] @?= 6
+        let snap = snapshotJson lg final
+        field "training" snap @?= Just (Bool False)
+        field "score" snap @?= Just Null
+    , testCase "scores are shown as eval (decided at winScore), winRate or none" $ do
+        scoreJson (EvalScore 37) @?= obj [("kind", String "eval"), ("value", Number 37), ("decided", Bool False)]
+        field "decided" (scoreJson (EvalScore (negate winScore))) @?= Just (Bool True)
+        field "decided" (scoreJson (EvalScore (winScore - 1))) @?= Just (Bool False)
+        scoreJson (WinRate 0.5) @?= obj [("kind", String "winRate"), ("value", Number 0.5)]
+        scoreJson NoScore @?= obj [("kind", String "none")]
+    , testCase "HTTP: a training game is created with training:true; without a human it is a 400" $ do
+        app <- newManager >>= \m -> application m "web"
+        flip runSession app $ do
+          r <- postJson "/api/games" "{\"white\":\"human\",\"black\":\"greedy\",\"training\":true}"
+          assertStatus 201 r
+          g <- request (setPath defaultRequest "/api/games/1")
+          assertBodyContains "\"training\":true" g
+          assertBodyContains "\"score\":null" g
+          real <- postJson "/api/games" "{\"white\":\"human\",\"black\":\"greedy\"}"
+          assertStatus 201 real
+          g2 <- request (setPath defaultRequest "/api/games/2")
+          assertBodyContains "\"training\":false" g2
+          bad <- postJson "/api/games" "{\"white\":\"random\",\"black\":\"greedy\",\"training\":true}"
+          assertStatus 400 bad
+          assertBodyContains "training needs a human" bad
+          bad2 <- postJson "/api/games" "{\"white\":\"human\",\"black\":\"greedy\",\"training\":\"yes\"}"
+          assertStatus 400 bad2
+    ]
+  where
+    sameGame bot = do
+      (_, real) <- playedGame (NewGame Human (Bot bot) 0 30 False)
+      (_, training) <- playedGame (NewGame Human (Bot bot) 0 30 True)
+      assertEqual ("moves of " ++ renderSpec bot) (reverse (gsMoves real)) (reverse (gsMoves training))
+    played ng = (\(_, st, evs) -> (st, evs)) <$> playedWithEvents ng
+    playedGame ng = (\(lg, st, _) -> (lg, st)) <$> playedWithEvents ng
+    playedWithEvents ng = do
+      lg <- start ng
+      (_, chan) <- watch lg
+      final <- playOut lg
+      evs <- drain chan
+      pure (lg, final, evs)
+    scoreEvents :: [Event] -> [(Int, Value)]
+    scoreEvents evs = [(truncate p, s) | ScoreEvent v <- evs, Just (Number p) <- [field "ply" v], Just s <- [field "score" v]]
+    isKind k s = field "kind" s == Just (String k)
+    tag (MoveEvent v) = "move " ++ plyOf v
+    tag (ScoreEvent v) = "score " ++ plyOf v
+    tag (EndEvent _) = "end"
+    plyOf v = case field "ply" v of
+      Just (Number p) -> show (truncate p :: Int)
+      _ -> "?"
+    obj kvs = Object (KM.fromList [(Key.fromString k, v) | (k, v) <- kvs])
 
 -- ---------------------------------------------------------------------------
 -- Helpers

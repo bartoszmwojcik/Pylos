@@ -106,7 +106,7 @@ instance A.FromJSON MoveRequest where
   parseJSON = A.withObject "move" $ \o -> MoveRequest <$> o A..: "move"
 
 -- | The body of @POST /api/games@.
-data NewGameRequest = NewGameRequest String String (Maybe Int) (Maybe Int)
+data NewGameRequest = NewGameRequest String String (Maybe Int) (Maybe Int) (Maybe Bool)
 
 instance A.FromJSON NewGameRequest where
   parseJSON = A.withObject "new game" $ \o ->
@@ -115,18 +115,28 @@ instance A.FromJSON NewGameRequest where
       <*> o A..: "black"
       <*> o A..:? "delayMs"
       <*> o A..:? "plyCap"
+      <*> o A..:? "training"
 
 -- | Check a request: both players parse (a bot spec or @human@), at most
--- one of them is human (D18), the delay and the cap are sane.
+-- one of them is human (D18), the delay and the cap are sane, and a
+-- training game has a human (D22).
+--
+-- @"training": true@ without a human is refused rather than ignored: a
+-- training game shows the bot's score to the human, so a bot-vs-bot
+-- training game is a mistake in the request, and a silently dropped flag
+-- would hide it (ADR 0026, Server).
 validate :: NewGameRequest -> Either String NewGame
-validate (NewGameRequest w b d c) = do
+validate (NewGameRequest w b d c t) = do
   white <- either (Left . ("white: " ++)) Right (parsePlayer w)
   black <- either (Left . ("black: " ++)) Right (parsePlayer b)
   when (white == Human && black == Human) $
     Left "at most one player can be human (D18)"
   delay <- inRange "delayMs" 0 10000 (maybe 800 id d)
   cap <- inRange "plyCap" 1 2000 (maybe 300 id c)
-  pure (NewGame white black delay cap)
+  let training = maybe False id t
+  when (training && white /= Human && black /= Human) $
+    Left "training needs a human player (D22)"
+  pure (NewGame white black delay cap training)
   where
     inRange name lo hi v
       | v >= lo && v <= hi = Right v
@@ -162,6 +172,7 @@ eventStream mgr next req respond = case pathInfo req of
   where
     jsonHeader = [(hContentType, "application/json")]
     toServerEvent (MoveEvent v) = sse "move" v
+    toServerEvent (ScoreEvent v) = sse "score" v
     toServerEvent (EndEvent r) = sse "end" (object ["result" .= resultJson (Just r)])
 
 sse :: String -> Value -> ServerEvent
