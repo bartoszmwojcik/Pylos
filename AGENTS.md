@@ -23,11 +23,11 @@ The toolchain (E01), the reference engine (E02), the bitboard engine (E03) and t
 | Game rules, moves, perft (reference engine) | `.ai/specs/product-brief.md` (R03–R08, D08, D09, D11, D12, D14) | Pure, readable code (D04, N04). Every rule function's Haddock comment cites the rule id it implements (D13). No performance tricks here. |
 | Bitboard engine | Product brief D05 and D11; the reference engine modules once they exist | Must match the reference golden perft and playout files. Reference modules never import bitboard modules. |
 | Bots, match runner | Product brief D15, D12; `bots/`; `docs/adr/0022-bots.md` | Pure `chooseMove` on the bitboard engine; one knob per bot (D15); a capped game is a draw (D12). |
-| Web server and viewer | Product brief D16, D17; `docs/web-protocol.md`; `server/`, `web/`; `docs/adr/0023-web-server.md` | scotty + SSE, plain JS + vendored Three.js, no build step. Bind to 127.0.0.1 (N02). Change the protocol doc together with server and client. |
+| Web server and viewer | Product brief D16, D17; `docs/web-protocol.md`; `server/`, `web/`; `docs/adr/0023-web-server.md` | scotty + SSE, plain JS + vendored Three.js, no build step. Bind to 127.0.0.1 by default, to the home network only by an explicit option (`--lan`, D20, N05). Change the protocol doc together with server and client. |
 | Decisions and explanations | `docs/adr/` (once created, D13) | Every non-obvious choice gets a decision record. A brief `proposal` is never recorded as accepted. |
 | A feature design | `SDLC.md`, `.ai/specs/` | Specs live in `.ai/specs/` as `{YYYY-MM-DD}-{kebab-case-title}.md`; briefs in `.ai/specs/briefs/`. |
 | Tests | `test/` (one tasty suite, grouped by story); `test/Gen.hs` for reachable positions | Engine behaviour ships with a QuickCheck property or HUnit rule test over reachable positions (`CODE_REVIEW.md`). |
-| CI | `.github/workflows/ci.yml`, `cabal.project.freeze`, `docs/adr/0024-ci-and-freeze-file.md` | CI mirrors `validation.commands` (build with `-Werror`, then test); change both together. Regenerate the freeze file only on purpose, with `cabal freeze`. |
+| CI | `.github/workflows/ci.yml`, `cabal.project.freeze`, `docs/adr/0024-ci-and-freeze-file.md` | CI mirrors `validation.commands` (build with `-Werror`, then test, then the `web-rules` Node job); change both together. Regenerate the freeze file only on purpose, with `cabal freeze`. |
 | Agent pipeline / process | `.ai/agentic.config.json`, `SDLC.md`, `.ai/trackers/github.md`, `.ai/browsers/agent-browser.md` | Change config and `SDLC.md` together; re-run `om-setup-agent-pipeline` when toolchain or labels change. |
 <!-- discovery:routing-start -->
 | Product discovery, a product brief, or a backlog | `.ai/specs/product-brief.md`, `.ai/specs/research/`, `.ai/specs/backlog.md`, `SDLC.md` → Definition of Ready and Product decisions as a protected contract | Non-goals, business rules and decisions in the brief are a protected contract — change them only with a superseding entry approved by their owner; synthetic personas are hypotheses, not evidence. |
@@ -46,6 +46,7 @@ Configured in `.ai/agentic.config.json` and `SDLC.md` → Validation gate, in th
 
 - `cabal build all`
 - `cabal test all` (about 30 s; it recomputes the golden perft values with the reference engine)
+- `node test/web-rules-perft.mjs` (about 1 s; checks the browser's rules copy `web/rules.js` against the golden perft values)
 
 ## Pointers
 

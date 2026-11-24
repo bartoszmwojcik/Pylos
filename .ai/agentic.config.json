@@ -8,7 +8,8 @@
   "validation": {
     "commands": [
       "cabal build all",
-      "cabal test all"
+      "cabal test all",
+      "node test/web-rules-perft.mjs"
     ]
   },
   "labels": {

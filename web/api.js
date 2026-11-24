@@ -39,15 +39,28 @@ export function createApi({ fetch = window.fetch.bind(window), EventSource = win
     listBots: () => request('GET', '/api/bots'),
     /** [GameSummary], newest first. */
     listGames: () => request('GET', '/api/games'),
-    /** Start a bot-vs-bot game; resolves to { id }, or throws ApiError (400) naming the bad spec. */
-    createGame: ({ white, black, delayMs, plyCap }) =>
-      request('POST', '/api/games', { white, black, delayMs, plyCap }),
+    /**
+     * Start a game; resolves to { id }, or throws ApiError (400) naming the bad spec.
+     * `white` and `black` are each a bot spec or 'human' (at most one human, D18).
+     * `training: true` starts a training game (D22): the stream then carries
+     * "score" events. It needs a human player; left out, the game is real.
+     */
+    createGame: ({ white, black, delayMs, plyCap, training }) =>
+      request('POST', '/api/games', { white, black, delayMs, plyCap, training }),
+    /**
+     * Play the human's move, in D09 notation as in the snapshot's move list.
+     * Resolves to the move's "move" event data; the bot's reply arrives on the
+     * event stream. Throws ApiError (400) with the server's reason when the move
+     * is refused (the game is then unchanged), or (404) for an unknown game.
+     */
+    postMove: (id, move) => request('POST', `/api/games/${encodeURIComponent(id)}/move`, { move }),
     /** GameSnapshot. */
     getGame: (id) => request('GET', `/api/games/${encodeURIComponent(id)}`),
 
     /**
-     * Subscribe to a game's events. `handlers` has onSnapshot, onMove, onEnd
-     * (each receives the parsed JSON data) and optionally onError.
+     * Subscribe to a game's events. `handlers` has onSnapshot, onMove, onEnd,
+     * and optionally onScore (training games only, D22: a PlyScore
+     * {ply, score}) and onError. Each receives the parsed JSON data.
      * Returns a function that closes the stream.
      */
     watchGame(id, handlers) {
@@ -58,6 +71,7 @@ export function createApi({ fetch = window.fetch.bind(window), EventSource = win
         });
       on('snapshot', handlers.onSnapshot);
       on('move', handlers.onMove);
+      on('score', handlers.onScore);
       on('end', (data) => {
         // The server keeps the stream open after "end" (protocol), so we close it.
         es.close();

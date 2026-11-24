@@ -18,6 +18,7 @@ import Test.Tasty.QuickCheck
 import Gen
 import qualified Pylos.Bitboard as B
 import Pylos.Bot
+import Pylos.Bot.Eval (evaluate)
 import Pylos.Match
 import Pylos.Reference.Board
 import Pylos.Reference.Move
@@ -28,7 +29,7 @@ import Pylos.Server.App (application)
 import Pylos.Server.Games
 
 tests :: TestTree
-tests = testGroup "Bots, match runner and server" [botTests, matchTests, serverTests]
+tests = testGroup "Bots, match runner and server" [botTests, matchTests, serverTests, scoreTests]
 
 -- | Cheap settings of every bot kind, so the properties run quickly.
 cheapBots :: [BotSpec]
@@ -121,7 +122,7 @@ serverTests =
     "E04-S03 server (D16)"
     [ testCase "a game's events extend its snapshot to the final position" $ do
         mgr <- newManager
-        Right gid <- startGame mgr (NewGame RandomBot RandomBot 0 300)
+        Right gid <- startGame mgr (NewGame (Bot RandomBot) (Bot RandomBot) 0 300 False)
         Just lg <- lookupGame mgr gid
         (st0, chan) <- watch lg
         events <- collectEvents chan
@@ -174,3 +175,68 @@ serverTests =
       case ev of
         EndEvent _ -> pure [ev]
         _ -> (ev :) <$> collectEvents chan
+
+-- ---------------------------------------------------------------------------
+-- E05-S05 (#35)
+
+scoreTests :: TestTree
+scoreTests =
+  testGroup
+    "E05-S05 bot scores (D22)"
+    [ testProperty "chooseMove and chooseMoveScored give the same move and generator" $
+        \(Reachable _ p) (seed :: Word64) ->
+          conjoin
+            [ counterexample (renderSpec bot) $
+                fmap moveAndGen (chooseMove bot (mkGen seed) bp)
+                  === fmap dropScore (chooseMoveScored bot (mkGen seed) bp)
+            | bot <- cheapBots
+            , let bp = B.fromReference p
+            ]
+    , testProperty "greedy scores its move as the evaluation of the chosen child, for White" $
+        \(Reachable _ p) (seed :: Word64) ->
+          let bp = B.fromReference p
+              greedyBot = GreedyBot defaultWeights
+           in case chooseMoveScored greedyBot (mkGen seed) bp of
+                Nothing -> property (isGameOver p)
+                Just (m, _, s) ->
+                  let child = B.applyMove m bp
+                   in s === scorePosition greedyBot child
+                        .&&. s === EvalScore (whiteView child (evaluate defaultWeights child))
+    , testProperty "alpha-beta scores its move as its search score of the position" $
+        \(Reachable _ p) (seed :: Word64) ->
+          let bp = B.fromReference p
+           in conjoin
+                [ counterexample ("depth " ++ show d) $ case chooseMoveScored (AlphaBetaBot d) (mkGen seed) bp of
+                    Nothing -> property (isGameOver p)
+                    Just (_, _, s) -> s === scorePosition (AlphaBetaBot d) bp
+                | d <- [1, 2 :: Int]
+                ]
+    , testProperty "random gives no score" $
+        \(Reachable _ p) (seed :: Word64) ->
+          let bp = B.fromReference p
+           in fmap thd (chooseMoveScored RandomBot (mkGen seed) bp)
+                === (if isGameOver p then Nothing else Just NoScore)
+                .&&. scorePosition RandomBot bp === NoScore
+    , testProperty "mcts gives a win rate between 0 and 1, and no position score" $
+        \(Reachable _ p) (seed :: Word64) ->
+          let bp = B.fromReference p
+           in not (isGameOver p) ==>
+                ( case chooseMoveScored (MctsBot 30) (mkGen seed) bp of
+                    Just (_, _, WinRate r) -> counterexample (show r) (r >= 0 && r <= 1)
+                    other -> counterexample (show (fmap thd other)) False
+                )
+                  .&&. scorePosition (MctsBot 30) bp === NoScore
+    , testCase "scores are from White's side: a won position is positive for White" $ do
+        -- Black has no balls left, so Black (to move) has lost (R05).
+        let p = (mkPosition ["a11", "a21"] ["a12", "a22"] Black) {blackReserve = 0}
+            bp = B.fromReference p
+        scorePosition (GreedyBot defaultWeights) bp @?= EvalScore winScore
+        case scorePosition (AlphaBetaBot 2) bp of
+          EvalScore s -> s >= winScore @? ("alpha-beta scored " ++ show s)
+          other -> assertFailure (show other)
+    ]
+  where
+    moveAndGen (m, g) = (m, g)
+    dropScore (m, g, _) = (m, g)
+    thd (_, _, s) = s
+    whiteView bp s = if B.bWhiteToMove bp then s else negate s
