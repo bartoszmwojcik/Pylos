@@ -42,9 +42,11 @@ export function createApi({ fetch = window.fetch.bind(window), EventSource = win
     /**
      * Start a game; resolves to { id }, or throws ApiError (400) naming the bad spec.
      * `white` and `black` are each a bot spec or 'human' (at most one human, D18).
+     * `training: true` starts a training game (D22): the stream then carries
+     * "score" events. It needs a human player; left out, the game is real.
      */
-    createGame: ({ white, black, delayMs, plyCap }) =>
-      request('POST', '/api/games', { white, black, delayMs, plyCap }),
+    createGame: ({ white, black, delayMs, plyCap, training }) =>
+      request('POST', '/api/games', { white, black, delayMs, plyCap, training }),
     /**
      * Play the human's move, in D09 notation as in the snapshot's move list.
      * Resolves to the move's "move" event data; the bot's reply arrives on the

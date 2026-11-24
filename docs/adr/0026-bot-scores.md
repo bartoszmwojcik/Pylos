@@ -44,3 +44,26 @@ Rejected: a separate scoring search inside `chooseMove` behind a flag. It would 
 ## Brief ids
 
 D22, D15, D12, R05. See ADR 0022 for how the bots work.
+
+## Server
+
+Added with the server part of issue #35. The protocol is in `docs/web-protocol.md`, section "Training games". The code is in `server/Pylos/Server/Games.hs` (`runGame`, `publishScore`) and `server/Pylos/Server/Json.hs` (`scoreJson`).
+
+**The flag.** `POST /api/games` takes `"training": true|false`, default `false`. It is stored in the game's setup (`ngTraining`) and never changes (D22). The snapshot and the summary show it as `"training"`. `"training": true` without a human player is refused with a 400, not ignored. A training game exists to show the bot's score to a human. In a bot-vs-bot game the flag is a mistake in the request, and silently dropping it would hide that mistake.
+
+**Real games stay clean.** In a real game the game thread calls `chooseMove` only, sends no `score` event, and the snapshot's `score` is `null`. In a training game it calls `chooseMoveScored`. Both use the same code path and the same generator (see Decision), so the bot plays the same moves. A test plays a real and a training game against each bot kind, with the same seed and a scripted human, and compares the moves.
+
+**One event for every score.** Each scored ply gets its own `score` event, `{"ply": N, "score": ...}`, sent after that ply's `move` event. The snapshot carries the newest one in the same shape, so a browser that reconnects shows the same score.
+
+Rejected: putting the score inside the `move` event. That works for the bot's moves, but not for the human's. The human's `move` event is the answer to the POST, and alpha-beta's score of that position is not known until its search ends. So the human's move would need a separate event anyway, and the browser would have two ways to receive a score. With one `score` event, the `move` event has the same shape in every game, and the client has one handler.
+
+**Who scores the human's move.** The game thread does, never the POST handler. The POST stays as fast as in a real game: it checks the move and applies it.
+
+- Greedy, MCTS and random: the thread calls `scorePosition` as soon as it wakes up for its turn, and sends the score before it starts thinking. Greedy's evaluation costs almost nothing; MCTS and random give `none`, which tells the browser to clear the old score.
+- Alpha-beta: `scorePosition` would be a full search at the bot's depth, and choosing the reply is a second one with the same result. The search value of the chosen move *is* the root value of the position the bot faces (see Decision; a bot test checks it). So the thread searches once, with `chooseMoveScored`, and sends three events in one STM transaction: the human's ply's score, the reply's `move`, and the reply's score. The two scores are equal. The cost: against a deep alpha-beta, the score of the human's move appears only with the bot's reply. Halving the bot's thinking time is worth more than showing that number a little earlier.
+
+Rejected: scoring the human's move in the POST handler. For alpha-beta it would block the request for a whole search, and the bot would then search again.
+
+**State.** The game state keeps the newest score (`gsScore`), written by the same transaction that sends the `score` event. A watcher reads the snapshot and subscribes in one transaction (ADR 0025), so it never misses a score or gets one twice. `publish` now reads the state inside its transaction instead of being handed it, so a score written just before a move is not overwritten.
+
+**Edge cases.** When the human's move ends the game, the thread ends it and sends no score for that position: there is no bot turn to score it in, and the `end` event says more than a score would. When the bot's move ends the game, its score is sent before `end`, so a won game shows as `decided`.

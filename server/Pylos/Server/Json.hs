@@ -5,6 +5,8 @@ module Pylos.Server.Json
   ( positionJson
   , moveEventJson
   , resultJson
+  , scoreJson
+  , plyScoreJson
   , colourText
   ) where
 
@@ -16,6 +18,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 
 import qualified Pylos.Bitboard as B
+import Pylos.Bot (BotScore (..), winScore)
 import Pylos.Match (GameResult (..))
 import Pylos.Reference.Board
 import Pylos.Reference.Move
@@ -65,3 +68,23 @@ resultJson :: Maybe GameResult -> Value
 resultJson Nothing = Null
 resultJson (Just (WonBy c)) = String (colourText c)
 resultJson (Just DrawByCap) = String "capped"
+
+-- | A bot's score in a training game (D22, ADR 0026), always from White's
+-- point of view:
+--
+-- * @{"kind": "eval", "value": 37, "decided": false}@: greedy's evaluation
+--   or alpha-beta's search score. @decided@ is true when the value is a
+--   won or lost game for White (@|value| >= winScore@).
+-- * @{"kind": "winRate", "value": 0.63}@: MCTS, White's share of its
+--   random games through the move it chose.
+-- * @{"kind": "none"}@: the bot has no score for this position.
+scoreJson :: BotScore -> Value
+scoreJson (EvalScore v) =
+  object ["kind" .= ("eval" :: Text), "value" .= v, "decided" .= (abs v >= winScore)]
+scoreJson (WinRate r) = object ["kind" .= ("winRate" :: Text), "value" .= r]
+scoreJson NoScore = object ["kind" .= ("none" :: Text)]
+
+-- | The data of a @score@ event, and the snapshot's @score@: the score of
+-- the position after @ply@ moves.
+plyScoreJson :: Int -> BotScore -> Value
+plyScoreJson ply s = object ["ply" .= ply, "score" .= scoreJson s]
