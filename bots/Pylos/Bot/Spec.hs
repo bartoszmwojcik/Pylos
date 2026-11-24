@@ -49,7 +49,7 @@ botKinds :: [(String, String, String)]
 botKinds =
   [ ("random", "random", "plays a uniformly random legal move")
   , ("greedy", "greedy:reserve=10,free=1", "best move one ply ahead; weights for reserve and free-ball advantage")
-  , ("alphabeta", "alphabeta:depth=3", "alpha-beta search; depth 1-6 plies")
+  , ("alphabeta", "alphabeta:depth=3", "alpha-beta search; depth 1-8 plies")
   , ("mcts", "mcts:iterations=2000", "Monte Carlo tree search; 1-200000 iterations per move")
   ]
 
@@ -77,7 +77,7 @@ parseSpec raw = do
       Right (GreedyBot (Weights r f))
     "alphabeta" -> do
       only ["depth"] settings
-      AlphaBetaBot <$> maybe (Right 3) (inRange "depth" 1 6) (lookup "depth" settings)
+      AlphaBetaBot <$> maybe (Right 3) (inRange "depth" 1 8) (lookup "depth" settings)
     "mcts" -> do
       only ["iterations"] settings
       MctsBot <$> maybe (Right 2000) (inRange "iterations" 1 200000) (lookup "iterations" settings)
