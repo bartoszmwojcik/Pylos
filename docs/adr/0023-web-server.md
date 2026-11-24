@@ -23,6 +23,7 @@ Rejected: WebSockets (not needed until S5, and not even then, since a POST is en
 
 ## Consequences
 
+- The page and every file under `/static/` are sent with `Cache-Control: no-cache`, so the browser re-checks each file with the server (a cheap `304` when unchanged). Without it, after an upgrade a browser could keep running an old `app.js`, and new features (such as "You vs bot") would seem missing.
 - Games are kept in memory only (N03). A restart forgets them.
 - New dependencies: scotty, wai, warp, wai-extra and http-types, plus stm, which ships with GHC (D16).
 

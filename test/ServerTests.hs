@@ -225,6 +225,15 @@ httpTests =
           r2 <- postJson "/api/games" "{\"white\":\"human\",\"black\":\"chess\"}"
           assertStatus 400 r2
           assertBodyContains "chess" r2
+    , testCase "browser files must be revalidated (no stale app.js after an upgrade)" $ do
+        app <- testApp
+        flip runSession app $ do
+          page <- request (setPath defaultRequest "/")
+          assertStatus 200 page
+          assertHeader "Cache-Control" "no-cache" page
+          js <- request (setPath defaultRequest "/static/app.js")
+          assertStatus 200 js
+          assertHeader "Cache-Control" "no-cache" js
     ]
   where
     testApp :: IO Application
