@@ -16,6 +16,7 @@ The validation gate (`cabal build all`, `cabal test all`) only ran on the machin
 - The build uses `-Werror`. The code builds warning-free today, and this keeps it so. Locally, `cabal build all` stays without `-Werror`, so a warning does not block work in progress.
 - The cabal store and `dist-newstyle` are cached, keyed on the OS, the GHC version and the hash of `pylos.cabal`, `cabal.project` and `cabal.project.freeze`. Without the cache every run rebuilds all dependencies (about 30 on `main`, more with the server), which takes minutes.
 - A newer push to the same branch cancels the older run.
+- A second job, `web-rules`, installs Node 22 with `actions/setup-node` and runs `node test/web-rules-perft.mjs`, the check of the browser's rules copy (ADR 0027). It is a separate job because it needs no Haskell, so it does not wait for the cabal build. Added on the owner's go-ahead (2026-11-24).
 - **`cabal.project.freeze`** pins every dependency version, its flags and the Hackage `index-state`. It was made with `cabal freeze` on the branch that adds the bots and the server, so it already covers their packages (`scotty`, `warp` and others). Pins for packages a branch does not use are ignored. The local `pylos` package is not pinned.
 
 Rejected: a build matrix over several GHC versions. D10 pins one compiler. Rejected: Stack or Nix. D10 chose cabal.

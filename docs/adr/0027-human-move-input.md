@@ -15,7 +15,7 @@ A Pylos move has up to three parts (D08): an action (place a reserve ball, or ra
 
 ## Decision
 
-**The browser computes the legal moves itself.** `web/rules.js` is a port of `reference/Pylos/Reference/Rules.hs`, function for function, with the rule ids in its comments. It lists the legal moves of the shown position. Small pure functions (`choices`, `click`, `draftMove`) say which squares may be clicked next and what a click does, so only choices that lead to a legal move respond. The server is still the judge: it checks the posted move again, and a refusal (HTTP 400) is shown with the server's own message. The port is checked against the golden perft counts (`web/README.md` has the command). Rejected: a server endpoint that lists the legal moves. It would add to the protocol, and every click would wait for the network. Also rejected: guessing from the R08 "placeable" squares in `notation.js`. That knows nothing about raises, free balls or shapes.
+**The browser computes the legal moves itself.** `web/rules.js` is a port of `reference/Pylos/Reference/Rules.hs`, function for function, with the rule ids in its comments. It lists the legal moves of the shown position. Small pure functions (`choices`, `click`, `draftMove`) say which squares may be clicked next and what a click does, so only choices that lead to a legal move respond. The server is still the judge: it checks the posted move again, and a refusal (HTTP 400) is shown with the server's own message. The port is checked against the golden perft counts by `test/web-rules-perft.mjs`, which CI runs. Rejected: a server endpoint that lists the legal moves. It would add to the protocol, and every click would wait for the network. Also rejected: guessing from the R08 "placeable" squares in `notation.js`. That knows nothing about raises, free balls or shapes.
 
 **One way to enter a move, the same for mouse and touch.** Only the words differ ("click" or "tap").
 
@@ -35,7 +35,7 @@ A Pylos move has up to three parts (D08): an action (place a reserve ball, or ra
 
 ## Consequences
 
-- There are now three implementations of the rules: the reference engine, the bitboard engine and `rules.js`. A wrong `rules.js` could hide a legal move from the player or offer an illegal one. The server would refuse the illegal one, but nothing in the browser would show the missing one. The perft check in `web/README.md` guards against this, but it is not part of `cabal test`, so CI does not run it.
+- There are now three implementations of the rules: the reference engine, the bitboard engine and `rules.js`. A wrong `rules.js` could hide a legal move from the player or offer an illegal one. The server would refuse the illegal one, but nothing in the browser would show the missing one. `test/web-rules-perft.mjs` guards against this: it compares `rules.js` with the golden perft counts (depths 1–3 of every golden position) and runs in CI as the `web-rules` job and in the validation gate. It is not part of `cabal test`, because the cabal suite cannot run JavaScript.
 - Places are sent on one click, so a mis-click is a played move, with no undo (D18). The tap rules, the smaller hit spheres, the hover cursor and the tooltip make it less likely. If it still happens in practice, a confirm step for places is a small change.
 - There is no keyboard-only way to enter a move yet, apart from Escape (cancel) and Enter (confirm a take-back).
 - Any browser that watches a human game while it waits can move for the human. There are no accounts (N05), and every browser is the owner's.

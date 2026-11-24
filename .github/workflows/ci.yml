@@ -1,7 +1,8 @@
 # Continuous integration for Pylos.
 #
 # It runs the same validation gate as SDLC.md and .ai/agentic.config.json
-# (validation.commands): `cabal build all`, then `cabal test all`.
+# (validation.commands): `cabal build all`, then `cabal test all`, then the
+# browser rules check `node test/web-rules-perft.mjs`.
 # Why each choice was made: docs/adr/0024-ci-and-freeze-file.md.
 
 name: CI
@@ -66,3 +67,17 @@ jobs:
       # values). --test-show-details=direct prints each test's result live
       # in the CI log, so a failure is readable without downloading files.
       - run: cabal test all --test-show-details=direct
+
+  # The browser's copy of the rules (web/rules.js, ADR 0027) must give the
+  # same perft counts as the reference engine (golden/perft.json). The cabal
+  # tests cannot see JavaScript, so this separate job checks it. It needs no
+  # Haskell, so it runs alongside build-and-test and takes seconds.
+  web-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Node 22 is the version the check was written and run with locally.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test/web-rules-perft.mjs

@@ -77,20 +77,13 @@ reasons are in `docs/adr/0027-human-move-input.md` (Q08).
   tap must move less than 5 px (mouse) or 10 px (finger), with one pointer.
 - On a phone (≤ 36rem) the play bar sits under the board, with big buttons.
 
-`rules.js` must agree with the reference engine. It was checked against the
-golden perft counts (depth 1–3 of every position in `golden/perft.json`), with
-Node 22 from the repository root:
+`rules.js` must agree with the reference engine. `test/web-rules-perft.mjs`
+checks it against the golden perft counts (depth 1–3 of every position in
+`golden/perft.json`). It is part of the validation gate and runs in CI as the
+`web-rules` job. Run it with Node 22 from the repository root:
 
 ```sh
-node --input-type=module -e '
-import { legalMoves, moveText } from "./web/rules.js";
-import { applyMove, startPosition } from "./web/notation.js";
-import fs from "node:fs";
-const perft = (p, d) => d === 0 ? 1 : legalMoves(p).reduce((n, m) => n + perft(applyMove(p, moveText(m)).position, d - 1), 0);
-for (const g of JSON.parse(fs.readFileSync("golden/perft.json", "utf8"))) {
-  const p = g.moves.reduce((q, t) => applyMove(q, t).position, startPosition());
-  console.log(g.name, [1, 2, 3].map((d) => perft(p, d) === g.perft[d - 1] ? "ok" : "MISMATCH"));
-}'
+node test/web-rules-perft.mjs
 ```
 
 ## Training games (S5, D22)

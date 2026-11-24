@@ -264,8 +264,9 @@ Every PR passes the full validation gate before review sign-off, in this order:
 
 1. `cabal build all`
 2. `cabal test all`
+3. `node test/web-rules-perft.mjs` (Node 22; checks the browser's copy of the rules in `web/rules.js` against `golden/perft.json`, ADR 0027)
 
-Any non-zero exit fails the gate and blocks the PR. The implementing skills run the gate before opening a PR, and `om-check-and-commit` runs it before pushing a hand-worked branch. The command list lives in `.ai/agentic.config.json`; when it changes, update it there and in this section together, and in `.github/workflows/ci.yml`, which runs the same gate on every PR to `main` and every push to `main` (with `-Werror` on the build). Dependency versions are pinned by `cabal.project.freeze`, so local runs and CI resolve the same packages.
+Any non-zero exit fails the gate and blocks the PR. The implementing skills run the gate before opening a PR, and `om-check-and-commit` runs it before pushing a hand-worked branch. The command list lives in `.ai/agentic.config.json`; when it changes, update it there and in this section together, and in `.github/workflows/ci.yml`, which runs the same gate on every PR to `main` and every push to `main` (with `-Werror` on the build; the Node check runs as its own `web-rules` job). Dependency versions are pinned by `cabal.project.freeze`, so local runs and CI resolve the same packages.
 
 ## Amending this process
 
