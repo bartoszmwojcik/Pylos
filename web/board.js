@@ -17,6 +17,16 @@
 // It also draws the marks of the move: an ice ring on the moved ball, thin
 // rings on the balls of a completed shape (R07), translucent "ghosts" where
 // a ball left (raise origin, take-backs) and a dashed arc for a raise.
+//
+// For human play (S5, ADR 0027) the view also takes input:
+//   view.setInput({ targets, selectable, selected, chosen })
+// draws what may be clicked now (bright markers on target squares, thin rings
+// round balls that respond, a lifted selected ball, see-through balls chosen
+// for take-back), and a tap or click on one of them calls onPick(square).
+// The view does not know the rules: the app (with rules.js) says what is
+// clickable. A tap is told apart from turning or zooming the view: it counts
+// only if the pointer moved less than a few pixels and no second finger
+// touched the screen meanwhile (see #watchTaps).
 
 import * as THREE from './vendor/three.module.min.js';
 import { OrbitControls } from './vendor/OrbitControls.js';
@@ -87,6 +97,11 @@ const ARC_S = 0.55 * SLOWMO; // a raised ball flying to its new square
 const TAKE_S = 0.35 * SLOWMO; // a taken-back ball shrinking away
 const TAKE_GAP_S = 0.12 * SLOWMO; // pause between two take-backs
 
+// A press counts as a tap (a move choice) only if the pointer moved less than
+// this many CSS pixels before it was released. Fingers jitter more than mice.
+const TAP_SLOP = { mouse: 5, pen: 8, touch: 10 };
+const LIFT = 0.14; // how far the selected ball is lifted out of its place
+
 /** Deterministic pseudo-random numbers, so the plate looks the same each load. */
 function seededRandom(seed) {
   return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -149,10 +164,15 @@ export class BoardView {
    * container — the element the canvas fills.
    * onHover   — called with { square, colour, x, y } when the pointer is over
    *             a ball (x, y in container pixels), or null when it is not.
+   *             colour is null for an empty square that is a target now.
+   * onPick    — called with a square name when a tap or click lands on a
+   *             ball or a target of the current input (see setInput).
    */
-  constructor(container, { onHover = () => {} } = {}) {
+  constructor(container, { onHover = () => {}, onPick = () => {} } = {}) {
     this.container = container;
     this.onHover = onHover;
+    this.onPick = onPick;
+    this.input = null; // what setInput was last given, or null: no input
     this.balls = new Map(); // square name -> ball mesh currently shown
     this.anims = []; // running animations: { t, dur, delay, step(k), ball }
     this.maxLevel = 3; // the level filter: levels above this are hidden
@@ -200,17 +220,34 @@ export class BoardView {
     this.ringGeometry = new THREE.TorusGeometry(R * 1.07, 0.022, 12, 64);
     this.shapeRingGeometry = new THREE.TorusGeometry(R * 1.04, 0.014, 12, 64);
     this.markerGeometry = new THREE.SphereGeometry(0.08, 16, 12);
+    // Human input: a brighter, larger marker on each target square, an
+    // invisible "hit" sphere round it so it is easier to click or tap, and a
+    // see-through look for balls chosen to be taken back. The hit sphere is
+    // smaller than a ball (radius 0.3, a ball's is 0.5): seen from the side, an
+    // empty square on a higher level hangs in front of the balls below it, and
+    // a ball-sized hit sphere there would catch clicks meant for those balls.
+    this.materials.target = new THREE.MeshBasicMaterial({ color: ICE, transparent: true, opacity: 0.85, depthWrite: false });
+    this.materials.hit = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false });
+    this.materials.selectable = new THREE.MeshBasicMaterial({ color: ICE, transparent: true, opacity: 0.55 });
+    this.materials.leaving = new THREE.MeshStandardMaterial({ color: ICE, transparent: true, opacity: 0.3, depthWrite: false, emissive: ICE, emissiveIntensity: 0.3 });
+    this.targetGeometry = new THREE.SphereGeometry(0.15, 20, 14);
+    this.hitGeometry = new THREE.SphereGeometry(0.3, 16, 12);
+    this.lifted = null; // the ball mesh lifted as "selected"
 
     // The marks of the shown move (rings, ghosts, arc, placeable markers)
     // live in one group that is rebuilt on every show().
     this.marks = new THREE.Group();
     this.scene.add(this.marks);
+    // The input marks (targets, hit spheres, selection rings), rebuilt by setInput().
+    this.inputMarks = new THREE.Group();
+    this.scene.add(this.inputMarks);
 
     // Hover picking: cast a ray from the pointer into the scene.
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
     renderer.domElement.addEventListener('pointermove', (e) => this.#pick(e));
     renderer.domElement.addEventListener('pointerleave', () => this.onHover(null));
+    this.#watchTaps(renderer.domElement);
 
     // Resize with the container (which resizes with the window).
     new ResizeObserver(() => this.#resize()).observe(container);
@@ -341,6 +378,93 @@ export class BoardView {
     this.maxLevel = maxLevel;
     this.balls.forEach((mesh, sq) => (mesh.visible = levelOf(sq) <= maxLevel));
     this.marks.children.forEach((m) => (m.visible = m.userData.level <= maxLevel));
+    this.inputMarks.children.forEach((m) => (m.visible = m.userData.level <= maxLevel));
+  }
+
+  /** Seconds until the running ball animations have finished (0 if none). */
+  animationTimeLeft() {
+    let left = 0;
+    for (const a of this.anims) if (a.ball) left = Math.max(left, (1 - a.t) * a.dur);
+    return left;
+  }
+
+  /**
+   * Show what the human may click now, or nothing (input = null).
+   *   targets    — empty squares a ball can go to: a bright marker each;
+   *   selectable — balls that respond to a click: a thin ring each;
+   *   selected   — the ball chosen to be raised: lifted, with the bright ring;
+   *   chosen     — balls chosen to be taken back: drawn see-through.
+   * Call it again after every show(), which redraws the balls.
+   */
+  setInput(input) {
+    this.input = input;
+    this.inputMarks.clear();
+    // Undo the looks of the last call: every ball gets its own material back,
+    // and the lifted ball goes back down (unless an animation now moves it).
+    for (const mesh of this.balls.values()) mesh.material = this.materials[mesh.userData.colour];
+    if (this.lifted && this.balls.get(this.lifted.userData.square) === this.lifted && !this.#animating(this.lifted)) {
+      this.lifted.position.copy(squareCentre(this.lifted.userData.square));
+    }
+    this.lifted = null;
+    this.renderer.domElement.style.cursor = '';
+    if (!input) {
+      this.onHover(null); // a tooltip on an empty target square would now be stale
+      return;
+    }
+
+    const add = (obj, sq) => {
+      obj.userData.level = levelOf(sq);
+      obj.userData.square = sq;
+      obj.visible = obj.userData.level <= this.maxLevel;
+      this.inputMarks.add(obj);
+    };
+    for (const sq of input.targets) {
+      const marker = new THREE.Mesh(this.targetGeometry, this.materials.target);
+      marker.position.copy(squareCentre(sq));
+      if (levelOf(sq) === 0) marker.position.y = SINK - R + 0.16; // low in the empty cup
+      add(marker, sq);
+      const hit = new THREE.Mesh(this.hitGeometry, this.materials.hit);
+      hit.position.copy(squareCentre(sq));
+      hit.userData.hit = true;
+      add(hit, sq);
+    }
+    for (const sq of input.selectable) {
+      if (sq === input.selected || !this.balls.has(sq)) continue;
+      const ring = new THREE.Mesh(this.shapeRingGeometry, this.materials.selectable);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.copy(squareCentre(sq));
+      add(ring, sq);
+    }
+    const selected = input.selected && this.balls.get(input.selected);
+    if (selected) {
+      selected.position.copy(squareCentre(input.selected)).setY(selected.position.y + LIFT);
+      this.lifted = selected;
+      const ring = new THREE.Mesh(this.ringGeometry, this.materials.ring);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.copy(selected.position);
+      add(ring, input.selected);
+    }
+    for (const sq of input.chosen) {
+      const mesh = this.balls.get(sq);
+      if (mesh) mesh.material = this.materials.leaving;
+    }
+  }
+
+  /**
+   * Where a square's ball centre is on screen, in viewport pixels
+   * ({ x, y }), for the browser tests (app.js exposes the view with ?debug=1).
+   */
+  screenPoint(square) {
+    const v = squareCentre(square);
+    const ball = this.balls.get(square);
+    if (ball) v.copy(ball.position);
+    v.project(this.camera);
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    return { x: rect.left + ((v.x + 1) / 2) * rect.width, y: rect.top + ((1 - v.y) / 2) * rect.height };
+  }
+
+  #animating(mesh) {
+    return this.anims.some((a) => a.ball && a.mesh === mesh);
   }
 
   /**
@@ -376,14 +500,14 @@ export class BoardView {
           const e = 1 - (1 - k) ** 3;
           mover.position.lerpVectors(start, end, e);
           mover.position.y = (1 - e) ** 2 * start.y + 2 * (1 - e) * e * peak + e * e * end.y;
-        }, { ball: true });
+        }, { ball: true, mesh: mover });
       } else if (move.kind === 'place' && !this.balls.has(move.to)) {
         mover = this.#ballMesh(move.to, move.by);
         const start = end.clone().setY(end.y + 2.2);
         mover.position.copy(start);
         landAt = DROP_S;
         // Accelerating fall (k²), like gravity.
-        this.#animate(DROP_S, (k) => mover.position.lerpVectors(start, end, k * k), { ball: true });
+        this.#animate(DROP_S, (k) => mover.position.lerpVectors(start, end, k * k), { ball: true, mesh: mover });
       }
       if (mover) {
         mover.userData.square = move.to;
@@ -437,12 +561,12 @@ export class BoardView {
     this.#animate(TAKE_S, (k) => {
       mesh.scale.setScalar(Math.max(0.001, 1 - k));
       if (k >= 1) this.scene.remove(mesh);
-    }, { ball: true, delay });
+    }, { ball: true, delay, mesh });
   }
 
   /** Queue an animation: step(k) is called with k going 0 → 1 over `dur` seconds. */
-  #animate(dur, step, { ball = false, delay = 0 } = {}) {
-    this.anims.push({ t: -delay / dur, dur, step, ball });
+  #animate(dur, step, { ball = false, delay = 0, mesh = null } = {}) {
+    this.anims.push({ t: -delay / dur, dur, step, ball, mesh });
   }
 
   /** The marks of a move, plus faint markers on the squares a ball could go now. */
@@ -499,13 +623,72 @@ export class BoardView {
     }
   }
 
-  #pick(e) {
+  /** The square of the ball or input target at a viewport point, or null (also for tests). */
+  squareAt(clientX, clientY) {
+    const hit = this.#hitAt({ clientX, clientY });
+    return hit ? hit.square : null;
+  }
+
+  /** The ball or input target under a pointer event, or null. The nearest one wins. */
+  #hitAt(e) {
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
+    const hits = this.input ? this.inputMarks.children.filter((m) => m.userData.hit && m.visible) : [];
     const visible = [...this.balls.values()].filter((m) => m.visible);
-    const hit = this.raycaster.intersectObjects(visible, false)[0];
-    this.onHover(hit ? { square: hit.object.userData.square, colour: hit.object.userData.colour, x: e.clientX - rect.left, y: e.clientY - rect.top } : null);
+    const hit = this.raycaster.intersectObjects([...visible, ...hits], false)[0];
+    if (!hit) return null;
+    const o = hit.object;
+    return { square: o.userData.square, colour: o.userData.hit ? null : o.userData.colour, x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  /** Is the square something the current input responds to? */
+  #clickable(square) {
+    return Boolean(this.input) && (this.input.targets.includes(square) || this.input.selectable.includes(square));
+  }
+
+  #pick(e) {
+    const hit = this.#hitAt(e);
+    // A hand cursor over what can be clicked; the grab cursor (CSS) elsewhere.
+    this.renderer.domElement.style.cursor = hit && this.#clickable(hit.square) ? 'pointer' : '';
+    this.onHover(hit);
+  }
+
+  /**
+   * Turn taps into onPick calls, without stealing the drags and pinches that
+   * OrbitControls uses to turn and zoom the view (D19, ADR 0027).
+   *
+   * Every pointer that goes down is remembered with where it went down and
+   * how far it has moved since. When the last one is released, the press was
+   * a tap only if (a) just one pointer took part — a second finger means a
+   * pinch — and (b) it never moved more than TAP_SLOP pixels — more means a
+   * drag that turned the view. Only the primary mouse button taps.
+   */
+  #watchTaps(el) {
+    const down = new Map(); // pointerId -> { x, y, moved }
+    let several = false; // has more than one pointer been down in this press?
+    el.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      down.set(e.pointerId, { x: e.clientX, y: e.clientY, moved: 0 });
+      if (down.size > 1) several = true;
+    });
+    el.addEventListener('pointermove', (e) => {
+      const p = down.get(e.pointerId);
+      if (p) p.moved = Math.max(p.moved, Math.hypot(e.clientX - p.x, e.clientY - p.y));
+    });
+    const release = (e, cancelled) => {
+      const p = down.get(e.pointerId);
+      if (!p) return;
+      down.delete(e.pointerId);
+      const wasSeveral = several;
+      if (down.size === 0) several = false;
+      p.moved = Math.max(p.moved, Math.hypot(e.clientX - p.x, e.clientY - p.y));
+      if (cancelled || wasSeveral || p.moved > (TAP_SLOP[e.pointerType] ?? TAP_SLOP.mouse)) return;
+      const hit = this.#hitAt(e);
+      if (hit && this.#clickable(hit.square)) this.onPick(hit.square);
+    };
+    el.addEventListener('pointerup', (e) => release(e, false));
+    el.addEventListener('pointercancel', (e) => release(e, true));
   }
 
   #resize() {

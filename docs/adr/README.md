@@ -31,5 +31,6 @@ Each record explains one choice and the reason for it. The product brief (`.ai/s
 | [0024](0024-ci-and-freeze-file.md) | CI and the dependency freeze file | Accepted (owner approved CI and the freeze file); details proposed | D10 |
 | [0025](0025-human-play-protocol.md) | Human play on the server: the `human` player, the move route, one writer at a time | Proposed (D18, D16 are the owner's) | D18, D16, D12 |
 | [0026](0026-bot-scores.md) | Bots return a score with their move | Proposed (D22 active; details proposed) | D22, D15 |
+| [0027](0027-human-move-input.md) | Entering a move with the mouse and by touch: legal moves in the browser, place / raise / take-back, taps versus view gestures, layouts (Q08) | Proposed (D18, D19 are the owner's) | Q08, D18, D19, R03, R04, R07 |
 
 Records 0002–0015 copy decisions the owner made in the brief. Records from 0016 on are implementation choices made while building the engines. They stay Proposed until the owner accepts them.
