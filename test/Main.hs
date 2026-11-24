@@ -8,6 +8,7 @@ import qualified BotTests
 import qualified GoldenTests
 import qualified ReferenceTests
 import qualified ToolchainTests
+import qualified WebArgsTests
 
 main :: IO ()
 main = do
@@ -20,4 +21,5 @@ main = do
       , GoldenTests.tests
       , BitboardTests.tests
       , BotTests.tests
+      , WebArgsTests.tests
       ]

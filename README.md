@@ -151,6 +151,14 @@ This plays 10 games with alternating colours, a 300-ply cap (a capped game is a 
 $(cabal list-bin pylos-web) 8080 web     # serves http://localhost:8080 on 127.0.0.1 only
 ```
 
+The server listens on 127.0.0.1 by default. To reach it from a phone or another machine on your home network, start it with the explicit option `--lan` (arguments: `pylos-web [--lan] [PORT] [WEB_DIR]`):
+
+```sh
+$(cabal list-bin pylos-web) --lan 8080 web   # listens on 0.0.0.0; prints http://<LAN address>:8080/
+```
+
+It then prints the address to open and a warning: **anyone on the same network can open the server and play; there is no password** (D20). Do not use it on a network you do not trust, and never forward the port to the internet (N05). If the phone cannot connect, check the server's firewall (for example `ufw`); whether a phone can reach the server at all is still an assumption (A06) until tried.
+
 The server has no display, so open it from your laptop through an SSH tunnel:
 
 ```sh
