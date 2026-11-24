@@ -58,7 +58,7 @@ A bot spec is `kind` or `kind:knob=value[,knob=value]`:
 |---|---|---|
 | `random` | none | `random` |
 | `greedy` | `reserve`, `free` (evaluation weights, integers) | `greedy:reserve=10,free=1` |
-| `alphabeta` | `depth` (1–6) | `alphabeta:depth=3` |
+| `alphabeta` | `depth` (1–8) | `alphabeta:depth=3` |
 | `mcts` | `iterations` (1–200000) | `mcts:iterations=2000` |
 
 ## SSE stream `GET /api/games/:id/events`

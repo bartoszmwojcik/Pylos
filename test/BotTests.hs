@@ -66,12 +66,14 @@ botTests =
           Just (m, _) -> isRaise (B.toRefMove m) @? ("depth " ++ show d ++ " played " ++ show (B.toRefMove m))
     , testCase "specs are parsed, with defaults, and rendered back" $ do
         parseSpec "alphabeta:depth=4" @?= Right (AlphaBetaBot 4)
+        parseSpec "alphabeta:depth=8" @?= Right (AlphaBetaBot 8)
         parseSpec "mcts" @?= Right (MctsBot 2000)
         parseSpec "greedy:free=3" @?= Right (GreedyBot (Weights 10 3))
         parseSpec " random " @?= Right RandomBot
         mapM_ (\b -> parseSpec (renderSpec b) @?= Right b) cheapBots
     , testCase "negative: bad specs are errors naming the bad part" $ do
         errNames "depth" (parseSpec "alphabeta:depth=0")
+        errNames "depth" (parseSpec "alphabeta:depth=9")
         errNames "foo" (parseSpec "mcts:foo=1")
         errNames "chess" (parseSpec "chess")
         errNames "depth=x" (parseSpec "alphabeta:depth=x")

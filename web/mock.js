@@ -38,7 +38,7 @@ const CANNED = {
 const BOTS = [
   { kind: 'random', example: 'random', help: 'Plays a uniformly random legal move.' },
   { kind: 'greedy', example: 'greedy:reserve=10,free=1', help: 'One-ply search; weights for reserve and free balls.' },
-  { kind: 'alphabeta', example: 'alphabeta:depth=3', help: 'Alpha-beta search to a fixed depth (1-6).' },
+  { kind: 'alphabeta', example: 'alphabeta:depth=3', help: 'Alpha-beta search to a fixed depth (1-8).' },
   { kind: 'mcts', example: 'mcts:iterations=2000', help: 'Monte Carlo tree search (1-200000 iterations).' },
 ];
 
