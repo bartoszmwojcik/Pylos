@@ -60,6 +60,12 @@
           <label for="opponent">Bot</label>
           <input id="opponent" name="opponent" spellcheck="false" autocomplete="off">
           <select id="opponent-examples" aria-label="Bot examples"></select>
+          <!-- Real or training game (D22): fixed when the game starts. -->
+          <span class="pv-label" id="training-label">Game</span>
+          <div class="pv-seg pv-form-seg" role="group" aria-labelledby="training-label">
+            <button type="button" data-training="false" aria-pressed="true">Real</button><button type="button" data-training="true" aria-pressed="false">Training</button>
+          </div>
+          <p id="training-help" class="pv-form-help"></p>
         </div>
 
         <div class="pv-form-row">

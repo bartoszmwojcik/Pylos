@@ -16,6 +16,11 @@
 // reference rules) and answers with a uniformly random legal move, whatever
 // the bot spec says, after `?mockthink=MS` milliseconds (default 600). It
 // refuses moves with the server's messages (docs/web-protocol.md).
+//
+// Training games (D22) send "score" events in the server's order (protocol,
+// "When scores arrive"), chosen by the bot spec's kind. The numbers are made
+// up: an "evaluation" is ten times White's reserve lead, a "win rate" is
+// derived from it. They show the screen, not a real bot's opinion.
 
 import { applyMove, parseMove, parseSquare, startPosition } from './notation.js';
 import { legalMoves, moveText, winner } from './rules.js';
@@ -73,6 +78,8 @@ function startGame({ white, black, delayMs = 800, plyCap = 300 }, canned, { inst
     white,
     black,
     human: null,
+    training: false,
+    score: null,
     status: 'running',
     result: null,
     plyCap,
@@ -105,12 +112,14 @@ const query = new URLSearchParams(window.location.search);
 const THINK_MS = Number(query.get('mockthink')) || 600;
 
 /** Start a game between "human" and a (random-playing) bot. */
-function startHumanGame({ white, black, plyCap = 300 }) {
+function startHumanGame({ white, black, plyCap = 300, training = false }) {
   const game = {
     id: String(nextId++),
     white,
     black,
     human: white === 'human' ? 'white' : 'black',
+    training,
+    score: null, // the newest {ply, score}, as in the snapshot
     status: 'running',
     result: null,
     plyCap,
@@ -124,16 +133,53 @@ function startHumanGame({ white, black, plyCap = 300 }) {
   return game;
 }
 
+// ---- training scores (made up; see the top of the file) ------------------
+
+const WIN_SCORE = 1000000;
+const botKind = (game) => String(game[game.human === 'white' ? 'black' : 'white']).split(':')[0];
+
+/** A fake evaluation for White: a won/lost game is ±WIN_SCORE, else 10 × reserve lead. */
+function fakeEval(position) {
+  const won = winner(position);
+  if (won) return { kind: 'eval', value: won === 'white' ? WIN_SCORE : -WIN_SCORE, decided: true };
+  return { kind: 'eval', value: 10 * (position.whiteReserve - position.blackReserve), decided: false };
+}
+
+/** A fake MCTS win rate for White, 0 … 1. */
+function fakeWinRate(position) {
+  const e = fakeEval(position);
+  const rate = e.decided ? (e.value > 0 ? 1 : 0) : Math.min(0.95, Math.max(0.05, 0.5 + e.value / 100));
+  return { kind: 'winRate', value: Math.round(rate * 1000) / 1000 };
+}
+
+function publishScore(game, ply, score) {
+  game.score = { ply, score };
+  broadcast(game, 'score', game.score);
+}
+
+/** The score after `who`'s move, by bot kind (protocol table); alpha-beta's of the human's comes with its reply. */
+function scoreAfter(game, who) {
+  const kind = botKind(game);
+  const ply = game.moves.length;
+  if (kind === 'greedy') publishScore(game, ply, fakeEval(game.position));
+  else if (kind === 'alphabeta') { if (who === 'bot') publishScore(game, ply, fakeEval(game.position)); }
+  else if (kind === 'mcts' && who === 'bot') publishScore(game, ply, fakeWinRate(game.position));
+  else publishScore(game, ply, { kind: 'none' });
+}
+
 /** Play a move (already known to be legal) and end the game if it is over. */
-function play(game, text) {
+function play(game, text, who) {
   const ev = applyMove(game.position, text);
   game.moves.push(ev.move);
   game.position = ev.position;
   const data = { ply: game.moves.length, ...ev };
   broadcast(game, 'move', data);
   const won = winner(game.position); // R05
+  const capped = game.moves.length >= game.plyCap; // D12
+  // A human move that ends the game is not scored; a bot's is, before "end".
+  if (game.training && (who === 'bot' || !(won || capped))) scoreAfter(game, who);
   if (won) finish(game, won);
-  else if (game.moves.length >= game.plyCap) finish(game, 'capped'); // D12
+  else if (capped) finish(game, 'capped');
   return data;
 }
 
@@ -141,7 +187,13 @@ function play(game, text) {
 function botMove(game) {
   if (game.status !== 'running' || game.position.toMove === game.human) return;
   const legal = legalMoves(game.position);
-  play(game, moveText(legal[Math.floor(Math.random() * legal.length)]));
+  const text = moveText(legal[Math.floor(Math.random() * legal.length)]);
+  // Alpha-beta: the score of the human's position is its search value of the
+  // reply, sent just before the reply (score N, move N+1, score N+1).
+  if (game.training && botKind(game) === 'alphabeta' && game.moves.length > 0) {
+    publishScore(game, game.moves.length, fakeEval(applyMove(game.position, text).position));
+  }
+  play(game, text, 'bot');
 }
 
 /** The human's POST /move, with the server's checks and messages. */
@@ -161,7 +213,7 @@ function postMove(game, body) {
   if (!legalMoves(game.position).some((m) => moveText(m) === text)) {
     return [400, { error: `illegal move: ${JSON.stringify(body.move)}` }];
   }
-  const data = play(game, text);
+  const data = play(game, text, 'human');
   if (game.status === 'running') setTimeout(() => botMove(game), THINK_MS);
   return [200, data];
 }
@@ -182,12 +234,12 @@ function broadcast(game, name, data) {
 }
 
 function snapshot(game) {
-  const { id, white, black, human, status, result, plyCap, delayMs, moves, position } = game;
-  return { id, white, black, human, waitingFor: waitingFor(game), status, result, plyCap, delayMs, moves: [...moves], position };
+  const { id, white, black, human, training, score, status, result, plyCap, delayMs, moves, position } = game;
+  return { id, white, black, human, training, waitingFor: waitingFor(game), status, result, plyCap, delayMs, moves: [...moves], position, score };
 }
 
 function summary(game) {
-  const { moves, position, ...rest } = snapshot(game);
+  const { moves, position, score, ...rest } = snapshot(game);
   return { ...rest, plies: moves.length };
 }
 
@@ -226,8 +278,10 @@ export async function mockFetch(path, init = {}) {
     if (err) return json(400, { error: err });
     if (body.white === 'human' && body.black === 'human') return json(400, { error: 'at most one player may be human' });
     const plyCap = Number.isFinite(body.plyCap) ? body.plyCap : 300;
-    if (body.white === 'human' || body.black === 'human') {
-      return json(201, { id: startHumanGame({ white: body.white, black: body.black, plyCap }).id });
+    const human = body.white === 'human' || body.black === 'human';
+    if (body.training === true && !human) return json(400, { error: 'training needs a human player (D22)' });
+    if (human) {
+      return json(201, { id: startHumanGame({ white: body.white, black: body.black, plyCap, training: body.training === true }).id });
     }
     const game = startGame(
       {
