@@ -208,6 +208,23 @@ button.pv-pill { cursor: pointer; }
 .pv-play-line { margin: 0.25rem 0 0; color: var(--s-300); font-size: 0.875rem; }
 .pv-play-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; flex-wrap: wrap; }
 .pv-play .pv-error { margin-top: 0.4rem; }
+/* Real or training game (D22), on the play bar's title line. */
+.pv-play-title .pv-mode { margin-left: auto; flex: none; font-size: 0.625rem; color: var(--s-300); }
+.pv-play-title .pv-mode.is-training { border-color: var(--ice-deep); color: var(--ice); }
+.pv-form-help { margin: 0.4rem 0 0; color: var(--s-400); font-size: 0.75rem; }
+/* The bot's score in a training game: label, value, and what the scale means. */
+.pv-score { margin-top: 0.5rem; padding-top: 0.45rem; border-top: 1px solid var(--s-600); }
+.pv-score-head { display: flex; align-items: baseline; gap: 0.5rem; font-family: var(--f-ui); font-size: 0.6875rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--s-400); }
+.pv-score-label { color: var(--s-200); font-weight: 600; }
+.pv-score-ply { margin-left: auto; white-space: nowrap; }
+.pv-score-main { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.15rem; }
+.pv-score-value { font-family: var(--f-mono); font-size: 1.25rem; font-weight: 500; color: var(--s-100); white-space: nowrap; }
+.pv-score-value.is-decided { color: var(--ice-strong); font-size: 1rem; }
+.pv-score[data-kind="none"] .pv-score-value, .pv-score[data-kind="unknown"] .pv-score-value { color: var(--s-500); }
+/* Win rate (0–100 %): White's share lit, Black's dark. */
+.pv-score-meter { flex: 1; height: 8px; background: #1b2228; border: 1px solid #05080a; }
+.pv-score-meter i { display: block; height: 100%; background: linear-gradient(180deg, #e6ecf0, #8e9aa4); }
+.pv-score-note { margin: 0.15rem 0 0; color: var(--s-400); font-size: 0.75rem; }
 /* "Bot is thinking": a small blinking square, like the Live pill. */
 .pv-thinking i { width: 0.5rem; height: 0.5rem; background: var(--ice); box-shadow: 0 0 8px var(--ice); animation: pv-blink 0.9s steps(2) infinite; flex: none; }
 .pv-you { font-family: var(--f-ui); font-size: 0.6875rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ice); }

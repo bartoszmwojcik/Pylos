@@ -30,6 +30,15 @@
 // move is final: there is no undo (D18). Moves of a human game are shown one
 // after the other: the bot's reply waits until the human's move has finished
 // animating (moveQueue), so both can be seen.
+//
+// Training games (S5, D22). A human game is real or training, fixed when it
+// starts (`game.training`). In a training game the stream also carries one
+// "score" event per ply: the bot's score of the position after that ply,
+// always from White's point of view (docs/web-protocol.md, ADR 0026). We keep
+//   scores   — Map ply -> score, every score seen since we started watching,
+// so stepping back through the moves shows that ply's score. A reconnect's
+// snapshot only has the newest score; older ones we had are kept. A real game
+// shows no score at all.
 
 import { createApi, ApiError } from './api.js';
 import { BoardView } from './board.js';
@@ -43,6 +52,8 @@ const LIST_REFRESH_MS = 3000;
 const RETRY_STEP_S = 5;
 const RETRY_MAX_S = 30;
 
+// A won or lost game for White is an evaluation at or beyond ±winScore (ADR 0026).
+const WIN_SCORE = 1000000;
 const RESULT_TEXT = { white: 'White wins', black: 'Black wins', capped: 'Draw (ply cap)' };
 // After the human's move has landed, a short pause before the bot's reply is shown.
 const REPLY_PAUSE_MS = 250;
@@ -116,7 +127,7 @@ async function main() {
   // ?debug=1: let browser tests find squares on screen (board.screenPoint) and
   // read the input state. Nothing else uses it.
   if (params.get('debug') === '1') {
-    window.pylosDebug = { board, state: () => ({ game, draft, legal: legal.map(moveText), posting, viewPly, moveError }) };
+    window.pylosDebug = { board, state: () => ({ game, draft, legal: legal.map(moveText), posting, viewPly, moveError, scores: Object.fromEntries(scores) }) };
   }
 
   let game = null;
@@ -133,6 +144,7 @@ async function main() {
   let moveError = '';
   let moveQueue = Promise.resolve();
   let watchToken = 0; // changes when we start watching another game
+  let scores = new Map(); // training games: ply -> the bot's score (see the top of the file)
 
   const newestPly = () => history.length - 1;
 
@@ -165,6 +177,7 @@ async function main() {
     watchToken++;
     resetDraft();
     moveError = '';
+    scores = new Map();
 
     const url = new URL(window.location.href);
     url.searchParams.set('game', id);
@@ -197,6 +210,8 @@ async function main() {
         conn.state = 'open';
         conn.attempt = 0;
         game = snap;
+        // The newest score; older ones we already had stay (same game).
+        if (snap.score) scores.set(snap.score.ply, snap.score.score);
         history = buildHistory(snap.moves);
         // The server is the authority on the position: use its copy.
         history[newestPly()].position = snap.position;
@@ -212,6 +227,13 @@ async function main() {
       onMove(ev) {
         if (!current() || !game) return;
         queue(() => addMove(ev));
+      },
+      onScore({ ply, score }) {
+        if (!current() || !game) return;
+        // Stored at once, keyed by ply: it is shown when that ply is on the
+        // board, even if its move is still waiting in the queue.
+        scores.set(ply, score);
+        renderPlay();
       },
       onEnd({ result }) {
         if (!current() || !game) return;
@@ -403,7 +425,61 @@ async function main() {
         el('div', { className: 'pv-play-actions' }, button(label, confirmTakeBack, true, 'confirm'), button('Cancel move', cancelDraft)));
     }
     if (moveError && state !== 'over') bar.append(el('p', { className: 'pv-error', role: 'alert' }, moveError));
+    // Which kind of game this is (D22), on the title line.
+    bar.querySelector('.pv-play-title').append(el('span', { className: `pv-tag pv-mode${game.training ? ' is-training' : ''}`, id: 'play-mode' },
+      game.training ? 'Training' : 'Real game'));
+    if (game.training) bar.append(renderScore(viewPly));
     bar.dataset.state = state;
+  }
+
+  /** The bot's kind ("greedy", "alphabeta", "mcts", "random") in the watched human game. */
+  const botKind = () => String(game[otherColour(game.human)]).split(':')[0];
+
+  /**
+   * The score strip of a training game: the bot's score of the position after
+   * ply `ply`, from White's side. An evaluation and a win rate are different
+   * scales (ADR 0026), so each has its own label; only the win rate, which is
+   * bounded, gets a meter.
+   */
+  function renderScore(ply) {
+    const s = scores.get(ply);
+    const kind = s ? s.kind : 'unknown';
+    let label = 'Bot\'s score';
+    let value = '—';
+    let note;
+    let meter = null;
+    if (!s) {
+      if (ply === 0) note = 'The start position is not scored.';
+      else if (ply === newestPly() && game.status === 'running') {
+        note = botKind() === 'alphabeta' ? 'Alpha-beta scores this position with its reply…' : 'Waiting for the score…';
+      } else if (ply === newestPly()) note = 'Not scored: the game ended with this move.';
+      else note = 'Not known: only the newest score survives a reconnect.';
+    } else if (s.kind === 'eval') {
+      label = 'Bot\'s evaluation for White';
+      if (s.decided) value = `decided: ${s.value > 0 ? 'White' : 'Black'} wins`;
+      else value = s.value > 0 ? `+${s.value}` : s.value < 0 ? `−${-s.value}` : '0';
+      note = `${botKind() === 'alphabeta' ? 'Alpha-beta\'s search score' : 'Greedy\'s evaluation'}: higher is better for White, 0 is even.`;
+    } else if (s.kind === 'winRate') {
+      const pct = Math.round(s.value * 100);
+      label = 'White\'s win rate · MCTS';
+      value = `${pct}%`;
+      note = 'Share of MCTS\'s random games that White won through the move it chose (a draw counts half).';
+      meter = el('div', { className: 'pv-score-meter', role: 'img', ariaLabel: `White ${pct}%, Black ${100 - pct}%` },
+        el('i', { style: `width: ${pct}%` }));
+    } else {
+      label = 'Bot\'s score';
+      note = botKind() === 'random' ? 'Random has no score.' : 'No score for this position: MCTS scores only the move it chooses.';
+    }
+    const strip = el('div', { className: 'pv-score', id: 'score', title: s && s.kind === 'eval' ? `raw value ${s.value}` : '' },
+      el('div', { className: 'pv-score-head' },
+        el('span', { className: 'pv-score-label' }, label),
+        el('span', { className: 'pv-score-ply pv-num' }, `after ply ${ply}`)),
+      el('div', { className: 'pv-score-main' },
+        el('span', { className: `pv-score-value pv-num${s && s.decided ? ' is-decided' : ''}`, id: 'score-value' }, value),
+        meter),
+      el('p', { className: 'pv-score-note' }, note));
+    strip.dataset.kind = kind; // eval, winRate, none or unknown: for the CSS and browser tests
+    return strip;
   }
 
   /** Tell the board what may be clicked now (nothing unless it is the human's turn). */
@@ -565,7 +641,7 @@ async function main() {
     };
     box.append(row('white'), row('black'),
       el('p', { className: 'pv-meta pv-num', id: 'ply' }, game.human
-        ? `Ply ${game.moves.length} · cap ${game.plyCap} · you vs bot`
+        ? `Ply ${game.moves.length} · cap ${game.plyCap} · you vs bot · ${game.training ? 'training' : 'real game'}`
         : `Ply ${game.moves.length} · cap ${game.plyCap} · delay ${game.delayMs} ms`));
   }
 
@@ -700,7 +776,7 @@ async function main() {
         const button = el('button', { type: 'button', onclick: () => watch(g.id), title: `Watch game ${g.id}: ${g.white} vs ${g.black}` },
           el('div', { className: 'pv-game-line' }, el('span', { className: 'pv-game-id' }, `#${g.id}`),
             el('span', { className: 'pv-game-bots' }, `${g.white} vs ${g.black}`)),
-          el('div', { className: 'pv-game-state pv-num' }, ...state));
+          el('div', { className: 'pv-game-state pv-num' }, ...state, g.training ? ' · training' : ''));
         if (gameId === g.id) button.setAttribute('aria-current', 'true');
         return el('li', {}, button);
       }),
@@ -739,7 +815,12 @@ async function main() {
   //                  asked for: the server ignores it in a human game.
   let mode = 'bots';
   let myColour = 'white';
+  let training = false; // "You vs bot" only: Real (false) or Training (true), D22
   function renderForm() {
+    for (const b of document.querySelectorAll('[data-training]')) b.setAttribute('aria-pressed', String(b.dataset.training === String(training)));
+    $('training-help').textContent = training
+      ? 'After every move the bot shows how it scores the position. Fixed for the whole game.'
+      : 'The bot only plays; no scores are shown. Fixed for the whole game.';
     for (const b of document.querySelectorAll('[data-mode]')) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
     for (const b of document.querySelectorAll('[data-colour]')) b.setAttribute('aria-pressed', String(b.dataset.colour === myColour));
     $('bots-fields').hidden = mode !== 'bots';
@@ -748,13 +829,15 @@ async function main() {
     $('start').textContent = mode === 'play' ? 'Play' : 'Start';
   }
   $('new-game').addEventListener('click', (e) => {
-    const b = e.target.closest('button[data-mode], button[data-colour]');
+    const b = e.target.closest('button[data-mode], button[data-colour], button[data-training]');
     if (!b) return;
     if (b.dataset.mode) mode = b.dataset.mode;
     if (b.dataset.colour) myColour = b.dataset.colour;
+    if (b.dataset.training) training = b.dataset.training === 'true';
     renderForm();
   });
   if (params.get('play') === '1') mode = 'play'; // ?play=1 opens the form on "You vs bot"
+  if (params.get('training') === '1') training = true; // ?training=1 preselects Training
   renderForm();
 
   $('new-game').addEventListener('submit', async (ev) => {
@@ -772,6 +855,7 @@ async function main() {
         ...players,
         delayMs: mode === 'play' ? undefined : num('delay'),
         plyCap: num('plycap'),
+        training: mode === 'play' ? training : undefined, // bot-vs-bot games are never training (D22)
       });
       await refreshList();
       watch(id);

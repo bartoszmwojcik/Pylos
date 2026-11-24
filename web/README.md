@@ -93,10 +93,41 @@ for (const g of JSON.parse(fs.readFileSync("golden/perft.json", "utf8"))) {
 }'
 ```
 
+## Training games (S5, D22)
+
+Under **You vs bot**, **Game** chooses **Real** (the default) or **Training**.
+The choice is sent as `"training"` when the game starts and cannot change
+during the game (D22). The play bar's title line says which kind of game it
+is ("Real game" or "Training"); so do the players panel and the game list.
+
+In a training game the play bar has a score strip under the instructions: the
+bot's score of the position after the ply on the board, always from White's
+point of view (`docs/web-protocol.md`, "Training games"; ADR 0026).
+
+- `eval` (greedy, alpha-beta): "Bot's evaluation for White", a signed number
+  (`+37`, `−12`, `0`). A won or lost game shows "decided: White wins" or
+  "decided: Black wins" instead of the large number.
+- `winRate` (MCTS): "White's win rate · MCTS", a percentage with a bar. It is
+  a different scale from an evaluation, so it has its own label and the only
+  meter.
+- `none`: "Random has no score", or, for MCTS after your move, "No score for
+  this position".
+
+Every score that arrives is kept by ply, so stepping back with the transport
+shows that ply's score. A reconnect (or a page reload) gets only the newest
+score from the snapshot; older plies then say "Not known". Against alpha-beta
+the score of your move arrives together with its reply (it comes from the same
+search), so until then the strip says alpha-beta is scoring. A real game shows
+no score at all.
+
+The mock (`?mock=1`) supports training games too. Its bot still plays random
+moves, but it sends score events in the server's order for the bot kind you
+typed, with made-up values (ten times White's reserve lead).
+
 ## URL parameters
 
 - `?mock=1`: use the fake server (no Haskell server needed). `&mockdelay=3000` slows its running game; `&mockthink=2000` makes its bot think 2 s in a human game (default 600 ms).
-- `?play=1`: open the New game form on "You vs bot".
+- `?play=1`: open the New game form on "You vs bot". `&training=1` preselects Training.
 - `?debug=1`: expose `window.pylosDebug` (the board view, for `screenPoint` and `squareAt`, and the input state) for browser tests.
 - `?game=ID`: watch that game on load. Without it, the newest running game is watched.
 - `?slowmo=5`: play move animations five times slower.

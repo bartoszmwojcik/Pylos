@@ -58,8 +58,9 @@ export function createApi({ fetch = window.fetch.bind(window), EventSource = win
     getGame: (id) => request('GET', `/api/games/${encodeURIComponent(id)}`),
 
     /**
-     * Subscribe to a game's events. `handlers` has onSnapshot, onMove, onEnd
-     * (each receives the parsed JSON data) and optionally onError.
+     * Subscribe to a game's events. `handlers` has onSnapshot, onMove, onEnd,
+     * and optionally onScore (training games only, D22: a PlyScore
+     * {ply, score}) and onError. Each receives the parsed JSON data.
      * Returns a function that closes the stream.
      */
     watchGame(id, handlers) {
@@ -70,6 +71,7 @@ export function createApi({ fetch = window.fetch.bind(window), EventSource = win
         });
       on('snapshot', handlers.onSnapshot);
       on('move', handlers.onMove);
+      on('score', handlers.onScore);
       on('end', (data) => {
         // The server keeps the stream open after "end" (protocol), so we close it.
         es.close();
