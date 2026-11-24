@@ -1,0 +1,26 @@
+# Human-vs-bot play (S5) settled by the project owner, 2026-11-24
+
+- Date, owner: 2026-11-24, project owner (om-discover refresh session, two rounds)
+- Context and the options weighed: S5, human-vs-bot play, was in Next. The agent asked why the owner wants to play the bots, who plays, how much the board helps, how a phone reaches the server (today it binds only to 127.0.0.1, N02), how other people install it, and whether the game shows what the bot thinks.
+- Owner's answers, as given:
+  - Purpose: "I want to understand whether the position evaluation for bot is optimal, to improve myself in the game as well amd have feeling how different bots play."
+  - Who plays: "just me as a player, anyone who installs this game and wants to play." (Asked to choose between only a human vs a bot, also human vs human on one browser, or taking over a side mid-game.)
+  - Help on the board: "UX should be intuitive, so I assume mobile phone and big screen can be a bit different. only legal move is possible. no undo."
+  - Phone access: "whatever technically in home network is feasible." (The agent proposed an opt-in flag that makes the server listen on the home network, with no accounts and no internet deployment.)
+  - Install for others: "yes full build for now" (building from source as the README describes; an easier install is later).
+  - Showing what the bot thinks: "let's keep this for future, not now, but idea is good".
+- Round 3 answers, as given:
+  - Asked whether it is fine that anyone on the same Wi-Fi can open the game and start or play games with no password while the home-network option is on: "it's ok."
+  - Asked whether the server is on the same home network as the phone: "yes. this is assumption for now."
+  - Asked whether to record judging the evaluation as a known S5 gap or add a small version of showing what the bot thinks: "propose a small version of it. it should be possible though to disable it in order to have choice of real game or training one"
+- Belief recorded with the decision, not as evidence: other people will install the game and play it. No such person was named. The agent asked in round 2 whether anyone specific is expected to install it; the answer did not address that part.
+- Decision and why:
+  - S5 is one human against one bot in the browser. Only legal moves are accepted; there is no undo.
+  - The play screen works on a phone and on a large screen, and the two layouts may differ.
+  - The server gets an opt-in way to listen on the home network so a phone can reach it. The default stays 127.0.0.1. No accounts, no internet deployment. The owner delegated the technical choice to the agent.
+  - Other players build from source. An easier install is later work.
+  - Showing the bot's evaluation or best moves is later work.
+- Consequences, and what would make us revisit it:
+  - The 127.0.0.1-only rule in AGENTS.md and ADR 0023 changes to "127.0.0.1 by default".
+  - If no one but the owner ever installs it, the "anyone who installs" target needs no further work.
+- Status: active
