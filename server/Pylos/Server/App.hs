@@ -19,7 +19,7 @@ import Data.ByteString.Builder (lazyByteString, string8)
 import Data.IORef
 import qualified Data.Text as T
 import Data.ByteString (ByteString)
-import Network.HTTP.Types (hContentType, status200, status201, status400, status404)
+import Network.HTTP.Types (HeaderName, hContentType, status200, status201, status400, status404)
 import Network.Wai
 import Network.Wai.EventSource (ServerEvent (..), eventSourceAppIO)
 import System.Directory (doesFileExist)
@@ -45,6 +45,7 @@ routes :: Manager -> FilePath -> S.ScottyM ()
 routes mgr webDir = do
   S.get "/" $ do
     S.setHeader "Content-Type" "text/html; charset=utf-8"
+    S.setHeader "Cache-Control" "no-cache"
     S.file (webDir </> "index.html")
 
   S.get "/api/bots" $
@@ -194,11 +195,20 @@ staticFiles webDir next req respond = case pathInfo req of
             exists <- doesFileExist path
             respond $
               if exists
-                then responseFile status200 [(hContentType, mimeType path)] path Nothing
+                then responseFile status200 [(hContentType, mimeType path), noCache] path Nothing
                 else responseLBS status404 [] "not found"
   _ -> next req respond
   where
     unsafe p = T.null p || "." `T.isPrefixOf` p || ".." `T.isInfixOf` p || "/" `T.isInfixOf` p
+
+-- | @Cache-Control: no-cache@: the browser may keep a copy but must ask the
+-- server whether it is still current before using it. Warp answers that
+-- question with @304 Not Modified@ when the file is unchanged, so this costs
+-- one small request per file. Without it a browser guesses how long a file
+-- stays fresh, and after an upgrade it can run the old @app.js@ with the new
+-- page (or the other way round), so new features seem missing.
+noCache :: (HeaderName, ByteString)
+noCache = ("Cache-Control", "no-cache")
 
 -- | The content type of the few kinds of file the viewer uses.
 mimeType :: FilePath -> ByteString
