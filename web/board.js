@@ -297,9 +297,15 @@ export class BoardView {
     // centre is, seen from inside. theta0 is the polar angle at which that
     // sphere crosses the plate surface (y = 0), so the cap's rim meets the
     // surface exactly at the hole's edge.
+    //
+    // The cups are satin, bead-blasted steel, not polished: a mirror-like cup
+    // (metalness 1) takes its colour from the dark room it reflects and looks
+    // like a gunmetal Black ball from the top camera. Half metalness and a
+    // rough finish keep an empty cup between the two ball colours (about
+    // 2.4 : 1 contrast against each) and still apart from the plate (#27).
     const theta0 = Math.acos(-SINK / CUP);
     const cupGeometry = new THREE.SphereGeometry(CUP, 48, 16, 0, Math.PI * 2, theta0, Math.PI - theta0);
-    const cupMaterial = new THREE.MeshStandardMaterial({ color: 0x3e4851, metalness: 1, roughness: 0.34, side: THREE.BackSide });
+    const cupMaterial = new THREE.MeshStandardMaterial({ color: 0x515c67, metalness: 0.5, roughness: 0.6, side: THREE.BackSide });
     for (let r = 1; r <= 4; r++) {
       for (let c = 1; c <= 4; c++) {
         const cup = new THREE.Mesh(cupGeometry, cupMaterial);
