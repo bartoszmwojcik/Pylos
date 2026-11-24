@@ -29,5 +29,6 @@ Each record explains one choice and the reason for it. The product brief (`.ai/s
 | [0022](0022-bots.md) | How the bots work | Accepted (D15); algorithms proposed | D15, D12 |
 | [0023](0023-web-server.md) | The live game server | Accepted (D16); structure proposed | D16, D17, N02 |
 | [0024](0024-ci-and-freeze-file.md) | CI and the dependency freeze file | Accepted (owner approved CI and the freeze file); details proposed | D10 |
+| [0025](0025-human-play-protocol.md) | Human play on the server: the `human` player, the move route, one writer at a time | Proposed (D18, D16 are the owner's) | D18, D16, D12 |
 
 Records 0002–0015 copy decisions the owner made in the brief. Records from 0016 on are implementation choices made while building the engines. They stay Proposed until the owner accepts them.

@@ -39,9 +39,19 @@ export function createApi({ fetch = window.fetch.bind(window), EventSource = win
     listBots: () => request('GET', '/api/bots'),
     /** [GameSummary], newest first. */
     listGames: () => request('GET', '/api/games'),
-    /** Start a bot-vs-bot game; resolves to { id }, or throws ApiError (400) naming the bad spec. */
+    /**
+     * Start a game; resolves to { id }, or throws ApiError (400) naming the bad spec.
+     * `white` and `black` are each a bot spec or 'human' (at most one human, D18).
+     */
     createGame: ({ white, black, delayMs, plyCap }) =>
       request('POST', '/api/games', { white, black, delayMs, plyCap }),
+    /**
+     * Play the human's move, in D09 notation as in the snapshot's move list.
+     * Resolves to the move's "move" event data; the bot's reply arrives on the
+     * event stream. Throws ApiError (400) with the server's reason when the move
+     * is refused (the game is then unchanged), or (404) for an unknown game.
+     */
+    postMove: (id, move) => request('POST', `/api/games/${encodeURIComponent(id)}/move`, { move }),
     /** GameSnapshot. */
     getGame: (id) => request('GET', `/api/games/${encodeURIComponent(id)}`),
 
