@@ -37,16 +37,33 @@
     <aside class="pv-left">
       <form id="new-game" class="pv-panel pv-form">
         <h2 class="pv-h3">New game</h2>
-        <label for="white">White bot</label>
-        <input id="white" name="white" spellcheck="false" autocomplete="off">
-        <select id="white-examples" aria-label="White bot examples"></select>
+        <div class="pv-seg pv-form-seg" role="group" aria-label="Kind of game">
+          <button type="button" data-mode="bots" aria-pressed="true">Bot vs bot</button><button type="button" data-mode="play" aria-pressed="false">You vs bot</button>
+        </div>
 
-        <label for="black">Black bot</label>
-        <input id="black" name="black" spellcheck="false" autocomplete="off">
-        <select id="black-examples" aria-label="Black bot examples"></select>
+        <div id="bots-fields" class="pv-fields">
+          <label for="white">White bot</label>
+          <input id="white" name="white" spellcheck="false" autocomplete="off">
+          <select id="white-examples" aria-label="White bot examples"></select>
+
+          <label for="black">Black bot</label>
+          <input id="black" name="black" spellcheck="false" autocomplete="off">
+          <select id="black-examples" aria-label="Black bot examples"></select>
+        </div>
+
+        <!-- "You vs bot" (S5, D18): your colour and the bot you play. -->
+        <div id="play-fields" class="pv-fields" hidden>
+          <span class="pv-label" id="colour-label">You play</span>
+          <div class="pv-seg pv-form-seg" role="group" aria-labelledby="colour-label">
+            <button type="button" data-colour="white" aria-pressed="true">White (first)</button><button type="button" data-colour="black" aria-pressed="false">Black</button>
+          </div>
+          <label for="opponent">Bot</label>
+          <input id="opponent" name="opponent" spellcheck="false" autocomplete="off">
+          <select id="opponent-examples" aria-label="Bot examples"></select>
+        </div>
 
         <div class="pv-form-row">
-          <div>
+          <div id="delay-field">
             <label for="delay">Delay (ms)</label>
             <input id="delay" name="delay" type="number" min="0" step="100" value="800">
           </div>
@@ -69,7 +86,7 @@
     <!-- Centre: the 3D board with its controls laid over it. -->
     <section class="pv-stage" aria-label="Board">
       <div id="board" class="pv-canvas" tabindex="0"
-           aria-label="3D board. Drag to orbit, scroll to zoom, arrow keys step through the moves."></div>
+           aria-label="3D board. Drag to orbit, scroll to zoom, arrow keys step through the moves. In your game, click or tap a marked square or ball to move."></div>
       <div class="pv-hud pv-hud-tl">
         <div class="pv-seg" role="group" aria-label="Camera">
           <button type="button" data-cam="perspective" aria-pressed="true">Perspective</button><button type="button" data-cam="top" aria-pressed="false">Top</button><button type="button" data-cam="side" aria-pressed="false">Side</button><button type="button" data-cam="corner" aria-pressed="false">Corner</button>
@@ -82,6 +99,8 @@
         </div>
       </div>
       <div id="tip" class="pv-tip" role="status" hidden></div>
+      <!-- Human play: whose turn, what to do next, take-back buttons, the result. -->
+      <section id="play" class="pv-play" aria-live="polite" aria-label="Your game" hidden></section>
       <!-- The slim bar shown while you look at an earlier ply ("Jump to live"). -->
       <div id="behind" class="pv-banner pv-banner-neutral pv-banner-slim" hidden></div>
       <div class="pv-transport">
