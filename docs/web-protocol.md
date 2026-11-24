@@ -109,7 +109,7 @@ A game with `"human"` as one player runs like any other, except that the game wa
 - **Pace.** `delayMs` paces bot-vs-bot games only. In a human game the bot replies as soon as it has chosen its move.
 - **Reconnecting.** The `snapshot` has the moves so far and `waitingFor`. A browser that reconnects mid-game enables input when `waitingFor` is its colour.
 - **The end.** A win, a loss or the ply cap (a draw, D12) sends `end` as in any game. The snapshot keeps `"human"` as that side's player.
-- **Limit.** A game that waits for the human does not count against the limit of 8 running games, so abandoned games never block new ones.
+- **Limits.** A game that waits for the human does not count against the limit of 8 running games when a new game starts, so abandoned games never block new ones. Separately, at most 8 bots think at the same time across all games. A bot whose turn comes while all 8 are busy waits for a free place, so its reply may come a little later, but no request is refused.
 
 ## Training games (S5, D22)
 

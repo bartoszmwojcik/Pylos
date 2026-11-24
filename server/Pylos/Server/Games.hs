@@ -44,11 +44,13 @@ module Pylos.Server.Games
   , snapshotJson
   , summaryJson
   , maxRunning
+  , maxThinking
+  , withThinkingPlace
   ) where
 
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM
-import Control.Exception (evaluate)
+import Control.Exception (bracket_, evaluate)
 import Control.Monad (void, when)
 import Data.Aeson
 import Data.Foldable (traverse_)
@@ -132,23 +134,50 @@ data LiveGame = LiveGame
   , lgState :: TVar GameState
   , lgEvents :: TChan Event
   -- ^ a broadcast channel: each watcher reads its own copy
+  , lgThinking :: TVar Int
+  -- ^ the server-wide count of bots thinking now, shared by every game
+  -- (see 'maxThinking')
   }
 
 -- | All games of this server run.
 data Manager = Manager
   { mGames :: TVar (Map.Map Int LiveGame)
   , mNextId :: TVar Int
+  , mThinking :: TVar Int
+  -- ^ how many bots are thinking right now, at most 'maxThinking'
   }
 
 newManager :: IO Manager
-newManager = Manager <$> newTVarIO Map.empty <*> newTVarIO 1
+newManager = Manager <$> newTVarIO Map.empty <*> newTVarIO 1 <*> newTVarIO 0
 
--- | At most this many games use the processor at once, so the server stays
--- responsive. A game that is waiting for the human does not count: it uses
--- no processor time, and an abandoned human game would otherwise hold a
--- place for ever.
+-- | At most this many bot-vs-bot games may be running when a new game
+-- starts. A game that is waiting for the human does not count: it uses no
+-- processor time, and an abandoned human game would otherwise hold a place
+-- for ever. Human games are therefore not limited in number, so the
+-- processor is protected by 'maxThinking' instead.
 maxRunning :: Int
 maxRunning = 8
+
+-- | At most this many bots think at the same time, across all games. A bot
+-- whose turn comes while all places are taken waits (blocked in STM, using
+-- no processor) until one is free. This bounds the work however many
+-- human games are open: each human move starts one search, and without
+-- this bound many human games could start many searches at once
+-- (ADR 0025).
+maxThinking :: Int
+maxThinking = 8
+
+-- | Run a bot's thinking in one of the 'maxThinking' places. 'bracket_'
+-- gives the place back even if the thinking throws, so a failed game
+-- cannot hold a place for ever.
+withThinkingPlace :: TVar Int -> IO a -> IO a
+withThinkingPlace t = bracket_ acquire release
+  where
+    acquire = atomically $ do
+      n <- readTVar t
+      when (n >= maxThinking) retry
+      writeTVar t (n + 1)
+    release = atomically (modifyTVar' t (subtract 1))
 
 -- | Whose colour is to move in a position.
 sideToMove :: B.BPosition -> Colour
@@ -189,7 +218,7 @@ startGame mgr ng = do
       else do
         gid <- readTVar (mNextId mgr)
         writeTVar (mNextId mgr) (gid + 1)
-        let lg = LiveGame gid ng initial chan
+        let lg = LiveGame gid ng initial chan (mThinking mgr)
         writeTVar (mGames mgr) (Map.insert gid lg games)
         pure (Right lg)
   case result of
@@ -229,15 +258,21 @@ runGame lg = loop
                   -- move below: one search, not two. The other bots score
                   -- it at once: a cheap evaluation, or no score at all.
                   early = scoreHuman && not (isAlphaBeta bot)
-              when early $ do
-                s <- evaluate (scorePosition bot p)
-                atomically (publishScore lg ply s)
-              case think bot g p of
+              -- Think in this thread, not inside an STM transaction, and
+              -- only in one of the server's 'maxThinking' places.
+              thought <- withThinkingPlace (lgThinking lg) $ do
+                when early $ do
+                  s <- evaluate (scorePosition bot p)
+                  atomically (publishScore lg ply s)
+                case think bot g p of
+                  Nothing -> pure Nothing
+                  Just r@(m, _, score) -> do
+                    _ <- evaluate m
+                    _ <- traverse evaluate score
+                    pure (Just r)
+              case thought of
                 Nothing -> finish DrawByCap -- unreachable (R05)
                 Just (m, g', score) -> do
-                  -- Think in this thread, not inside the STM transaction.
-                  _ <- evaluate m
-                  _ <- traverse evaluate score
                   -- In a human game the bot answers at once (ADR 0025).
                   when (humanSide ng == Nothing) $ threadDelay (ngDelayMs ng * 1000)
                   -- It is the bot's turn, so nobody else can have changed

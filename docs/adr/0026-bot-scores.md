@@ -37,7 +37,7 @@ Rejected: a separate scoring search inside `chooseMove` behind a flag. It would 
 ## Consequences
 
 - The server can ask for the score only in a training game and ignore it in a real game. In both cases the bot plays the same move.
-- `scorePosition` for alpha-beta costs one full search at the bot's depth. A training game against alpha-beta therefore searches about twice per bot turn: once to score the human's move and once to choose the reply. A real game does not pay this.
+- `scorePosition` for alpha-beta costs one full search at the bot's depth. The server does not call it for alpha-beta: the root value of the search that chooses the reply is the score of the position after the human's move, so a training game against alpha-beta still searches once per bot turn (see Server below).
 - An evaluation and a win rate are different scales. The screen must label them differently. Putting every bot on one scale is Later in the brief.
 - The alpha-beta score is exact for the chosen move, not a bound. The first root move is searched with a full window, and a later move replaces it only when its score is inside the window.
 

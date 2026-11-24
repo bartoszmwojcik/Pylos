@@ -38,6 +38,8 @@ Rejected: an `MVar` or channel mailbox that sends posted moves to the game threa
 
 **The running limit counts games that use the processor.** The limit of 8 (ADR 0023) exists so the server stays responsive. A game waiting for the human uses no processor time, so it does not count. Otherwise, after eight abandoned games (a closed tab, a reload), no new game could start until a restart.
 
+**At most 8 bots think at once.** Because waiting human games are not counted, many human games can be open, and each human move starts a bot search. Admission alone would therefore not bound the work. So every bot thinks inside one of 8 server-wide places (`maxThinking`, a counter in STM). A bot whose turn comes while all places are busy waits, blocked in STM without using the processor, and replies when a place is free. Waiting was chosen over refusing the move with an error, because the human's move is legal and has already been applied. `bracket_` gives a place back even if a bot throws, so a failed game cannot hold a place for ever.
+
 ## Consequences
 
 - The browser (E05-S03) needs only `postMove` and the existing event stream. On reconnect, the snapshot's `waitingFor` says whether to enable input.

@@ -177,6 +177,9 @@ async function main() {
     watchToken++;
     resetDraft();
     moveError = '';
+    // A move still on its way belongs to the game we are leaving: its answer
+    // is ignored (the watchToken check), so it must not keep input off here.
+    posting = false;
     scores = new Map();
 
     const url = new URL(window.location.href);

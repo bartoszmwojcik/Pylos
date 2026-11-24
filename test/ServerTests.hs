@@ -7,7 +7,10 @@
 -- go through HTTP to check the routes and status codes.
 module ServerTests (tests) where
 
+import Control.Concurrent (forkIO)
 import Control.Concurrent.STM
+import Control.Exception (ErrorCall (..), throwIO, try)
+import Control.Monad (replicateM_, when)
 import Data.Aeson (Value (..))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
@@ -121,6 +124,22 @@ managerTests =
         mgr <- newManager
         ids <- mapM (const (startGame mgr (NewGame Human (Bot RandomBot) 0 300 False))) [1 .. maxRunning + 2]
         all isRight ids @? "a waiting human game was counted as running"
+    , testCase "at most maxThinking bots think at once; the next one waits" $ do
+        t <- newTVarIO 0
+        release <- newEmptyTMVarIO
+        -- Fill every place with a 'bot' that thinks until released.
+        replicateM_ maxThinking $ forkIO (withThinkingPlace t (atomically (readTMVar release)))
+        atomically (readTVar t >>= \n -> when (n < maxThinking) retry)
+        extra <- timeout 200000 (withThinkingPlace t (pure ()))
+        extra @?= Nothing
+        atomically (putTMVar release ())
+        later <- timeout 5000000 (withThinkingPlace t (pure ()))
+        later @?= Just ()
+    , testCase "a bot that throws gives its thinking place back" $ do
+        t <- newTVarIO 0
+        r <- try (withThinkingPlace t (throwIO (ErrorCall "boom"))) :: IO (Either ErrorCall ())
+        r @?= Left (ErrorCall "boom")
+        readTVarIO t >>= (@?= 0)
     ]
   where
     isRight = either (const False) (const True)
