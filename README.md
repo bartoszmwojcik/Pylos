@@ -1,26 +1,74 @@
 # Pylos
 
-A Pylos rules engine in Haskell, built to be understood.
+**Play the board game Pylos against a computer opponent, or watch two bots
+play each other, on a 3D board in your browser.**
 
-- **The reference engine** (`reference/`) is pure and readable. It is the oracle: every rule function cites the rule it implements (R03–R08, D08 in `.ai/specs/product-brief.md`).
-- **The bitboard engine** (`bitboard/`) implements the same rules with bit masks, for speed. It is trusted only because it matches the reference on golden perft and playout values and on random positions.
-- **Why it is built this way:** `docs/adr/` holds one decision record per choice.
+![Two bots playing: alpha-beta (White) against MCTS (Black)](docs/images/bots-watch.png)
 
-- **Bots and a live 3D viewer** (`bots/`, `server/`, `web/`): random, greedy, alpha-beta and MCTS bots play each other, and you watch in a browser (E04).
+Pylos is a two-player strategy game. Players take turns stacking balls into a
+pyramid. Whoever runs out of balls first loses, so the game is about making
+every ball count. This project is the game written in Haskell: a rules
+engine, several bots of different strength, and a web page with a 3D board
+that you can rotate and zoom.
 
-Human-vs-bot play is the next epic.
+## Features
 
-## Install (Ubuntu, headless)
+- **You vs bot.** Pick your colour and an opponent, then play by clicking or
+  tapping the board. Only legal moves can be made, and the board shows where
+  you can play.
+- **Training games.** After every move, the bot shows how it rates the
+  position, so you can see which moves it thinks were good or bad.
+- **Bot vs bot.** Choose two bots, set the speed and watch. Step back through
+  any game move by move.
+- **Phone and big screen.** The page works with a mouse or with touch. On your
+  home network, a phone can open it too.
 
-1. System libraries. GHC links against GMP:
+| Training game against alpha-beta | On a phone | Game over |
+|---|---|---|
+| ![A training game: the play bar asks for White's move and shows the bot's evaluation](docs/images/training.png) | ![The same training game on a phone](docs/images/phone.png) | ![A finished game: the pyramid is almost full and White wins](docs/images/game-over.png) |
+
+## The rules in short
+
+- Each player has **15 balls**. The pyramid has **4 levels**: 4×4, 3×3, 2×2
+  and the single apex.
+- On your turn, **place** a ball from your reserve on any empty square. A
+  square on an upper level can be used only when the 4 balls beneath it are
+  there.
+- Or **raise** one of your own balls that has nothing on top of it to a higher
+  level. That saves a ball from your reserve.
+- When your move completes a **2×2 square** of your colour, or a **full row of
+  4** on the bottom level, you may **take back 1 or 2** of your free balls.
+- **If it is your turn and you have no balls left, you lose.**
+
+The full rules, with examples and the move notation used in the move list:
+**[docs/rules.md](docs/rules.md)**.
+
+## The bots
+
+Each bot is written as a short spec with at most one setting. Type it into the
+form, or pick one from the examples list.
+
+| Spec | What it does |
+|---|---|
+| `random` | a random legal move |
+| `greedy:reserve=10,free=1` | the best move one ply ahead; the weights for reserve and free-ball advantage |
+| `alphabeta:depth=3` | alpha-beta search, depth 1–8 (depth 3 ≈ 0.1 s per game, depth 4 a few seconds) |
+| `mcts:iterations=2000` | Monte Carlo tree search, 1–200000 iterations per move |
+
+A higher depth or more iterations usually plays better, but the bot thinks
+longer before each move.
+
+## Install
+
+Pylos is built from source. These steps are for Ubuntu.
+
+1. System libraries:
 
    ```sh
    sudo apt install build-essential curl libffi-dev libgmp-dev libncurses-dev
    ```
 
-   Without `sudo`, see [No libgmp-dev](#no-libgmp-dev) below.
-
-2. The Haskell toolchain through ghcup, with the pinned compiler (D10):
+2. The Haskell toolchain through ghcup:
 
    ```sh
    curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
@@ -30,139 +78,60 @@ Human-vs-bot play is the next epic.
    cabal update
    ```
 
-   `cabal.project` pins `with-compiler: ghc-9.10.1`, so cabal uses that version even if another GHC is the default.
-
-3. Build and test:
+3. Build (the first build takes a few minutes):
 
    ```sh
    cabal build all
-   cabal test all
    ```
 
-   The first build downloads and compiles the dependencies (a few minutes). The test suite takes about 30 seconds. Most of that is the reference engine recomputing the golden perft values.
+If the build stops with `cannot find -lgmp`, see
+[No libgmp-dev](docs/technical.md#no-libgmp-dev).
 
-### No libgmp-dev
+## Play
 
-If the build fails with `cannot find -lgmp`, the runtime library is installed but the development link `libgmp.so` is not. Install `libgmp-dev`. If you cannot use `sudo`, point the linker at a private symlink:
-
-```sh
-mkdir -p ~/.local/lib/pylos-gmp
-ln -sf /usr/lib/x86_64-linux-gnu/libgmp.so.10 ~/.local/lib/pylos-gmp/libgmp.so
-export LIBRARY_PATH="$HOME/.local/lib/pylos-gmp${LIBRARY_PATH:+:$LIBRARY_PATH}"   # add to ~/.bashrc
-```
-
-## Using it
-
-Moves are written as in D09: `a23` places a ball, `a11-b22` raises one, and `a22 x a11 a12` takes back balls after completing a shape. Each move is one command-line argument, so quote a move that contains spaces.
+Start the server from the project folder:
 
 ```sh
-alias pylos-ref="$(cabal list-bin pylos-ref)"
-alias pylos-bit="$(cabal list-bin pylos-bit)"
-
-pylos-ref show a11 a12 a21 a22         # print the position after these moves
-pylos-ref moves a11 a12 a21 a22        # list the legal moves there
-pylos-ref perft 4                      # perft 1..4 from the start, with times
-pylos-ref divide 3 a11                 # perft 2 below each reply to a11
-pylos-ref playout 7 > game.json        # one random game (seed 7) as a JSON record
-pylos-ref replay game.json             # replay and check a record
-pylos-ref golden                       # regenerate golden/ (see below)
-
-pylos-bit perft 6                      # the bitboard engine
-pylos-bit bench 6                      # both engines: nodes per second and speed-up
-pylos-bit compare 4 a11 a12            # find the first move where the engines differ
-pylos-bit parity                       # check the bitboard engine against golden/
+$(cabal list-bin pylos-web) 8080 web
 ```
 
-An illegal move makes any command exit non-zero and name the move, for example `illegal move at ply 2: "b11"`.
+Open **http://localhost:8080** in a browser.
 
-## What the tests check
+- **To play:** choose **You vs bot**, your colour, a bot, and **Real** or
+  **Training**, then press **Play**. Click a marked square to place a ball.
+  To raise, click one of your ringed balls, then the square to move it to.
+  When you complete a shape, click the balls you want back, then confirm.
+- **To watch:** choose **Bot vs bot**, type or pick a bot for each side, set
+  the delay between moves, and press **Start**.
+- **The board:** drag to rotate, scroll or pinch to zoom, right-drag to pan.
+  The buttons above the board switch views and show only some levels.
 
-`cabal test all` runs one suite, grouped by backlog story:
+### On a server without a screen
 
-| Group | Story | What |
-|---|---|---|
-| E01-S01 toolchain | #5 | one QuickCheck property, one HUnit test, the pinned GHC version |
-| E02-S01 board | #7 | 30 squares, supports, rendering |
-| E02-S02 moves | #8 | ball conservation, no floating balls, no duplicate moves, raises (R03), empty reserve loses (R05) |
-| E02-S05 shapes | #15 | squares, rows, take-backs of 0–2, a ball freed by a take-back, diagonals and level-b rows are not shapes |
-| E02-S03 notation | #9 | render/parse round trip, JSON record replay, parse errors |
-| E02-S04 perft | #10 | 16 / 240 / 3360 / 43680, symmetry, bounded playouts |
-| Golden files | #10, #12 | the reference reproduces `golden/`, the bitboard engine matches it |
-| Bitboard engine | #11, #12 | same moves, same positions, same playouts as the reference; an injected bug is found |
-
-Properties run over *reachable* positions, made by random legal play from the start (`test/Gen.hs`).
-
-To see a failing property, run the deliberate failure. It exits non-zero and prints the counterexample:
+Open an SSH tunnel from your laptop, then browse to http://localhost:8080 on
+the laptop:
 
 ```sh
-PYLOS_DEMO_FAILURE=1 cabal test all
+ssh -N -L 8080:localhost:8080 <server>
 ```
 
-## Golden files
+### From a phone on your home network
 
-`golden/perft.json` and `golden/playouts.json` freeze what the reference engine computes (D11). They hold perft for the start position (to depth 6) and four mid-game positions, and the outcome of 200 seeded random games. Regenerate them with `pylos-ref golden` **only** after an owner-approved rule change, and explain the change in the PR (`CODE_REVIEW.md`, `BACKWARD_COMPATIBILITY.md`).
-
-## Layout
-
-```
-reference/Pylos/Reference/   the reference engine (library "pylos")
-  Board.hs      squares, supports, positions, printing       R08
-  Move.hs       the compound move                             D08
-  Rules.hs      legal moves, shapes, take-backs, game end     R03-R08
-  Notation.hs   a23, a11-b22, " x a23 a24"                    D09
-  Record.hs     JSON game records                             D09
-  Perft.hs      perft and divide                              D08
-  Playout.hs    bounded random games                          D12
-  Random.hs     the engine's own seeded random generator
-  Symmetry.hs   the 8 board symmetries
-  Golden.hs     what goes into golden/                        D11
-bitboard/Pylos/              the bitboard engine (internal library "bitboard")
-  Bitboard.hs   positions as two Word32 masks
-  Compare.hs    engine-against-engine comparison (divide)
-bots/Pylos/                  the bots and the match runner (internal library "bots")
-server/Pylos/Server/         the live game server (internal library "server")
-web/                         the browser viewer (plain JS + vendored Three.js)
-app/                         pylos-ref, pylos-bit, pylos-match, pylos-web
-test/                        the test suite
-golden/                      frozen perft and playout values
-docs/adr/                    decision records
-```
-
-## Bots and matches
-
-A bot is a one-line spec with at most one knob (D15):
-
-| Spec | What it does |
-|---|---|
-| `random` | a random legal move |
-| `greedy:reserve=10,free=1` | the best move one ply ahead; the weights for reserve and free-ball advantage |
-| `alphabeta:depth=3` | alpha-beta search, depth 1–6 (depth 3 ≈ 0.1 s per game, depth 4 a few seconds) |
-| `mcts:iterations=2000` | Monte Carlo tree search, 1–200000 iterations per move |
+By default only the computer running the server can open the game. To allow a
+phone or another computer on the same network, add `--lan`:
 
 ```sh
-$(cabal list-bin pylos-match) alphabeta:depth=3 mcts:iterations=1000 10 300 games/
+$(cabal list-bin pylos-web) --lan 8080 web
 ```
 
-This plays 10 games with alternating colours, a 300-ply cap (a capped game is a draw), and writes each game to `games/` as a JSON record (`pylos-ref replay games/game-1.json`).
+The server prints the address to open on the phone. **Anyone on the same
+network can then open the game; there is no password.** Use it only on a
+network you trust, and never make the port reachable from the internet. If
+the phone cannot connect, check the server's firewall (for example `ufw`).
 
-## Watching games in the browser
+## More
 
-```sh
-$(cabal list-bin pylos-web) 8080 web     # serves http://localhost:8080 on 127.0.0.1 only
-```
-
-The server listens on 127.0.0.1 by default. To reach it from a phone or another machine on your home network, start it with the explicit option `--lan` (arguments: `pylos-web [--lan] [PORT] [WEB_DIR]`):
-
-```sh
-$(cabal list-bin pylos-web) --lan 8080 web   # listens on 0.0.0.0; prints http://<LAN address>:8080/
-```
-
-It then prints the address to open and a warning: **anyone on the same network can open the server and play; there is no password** (D20). Do not use it on a network you do not trust, and never forward the port to the internet (N05). If the phone cannot connect, check the server's firewall (for example `ufw`); whether a phone can reach the server at all is still an assumption (A06) until tried.
-
-The server has no display, so open it from your laptop through an SSH tunnel:
-
-```sh
-ssh -N -L 8080:localhost:8080 prodesk1   # on the laptop; then browse to http://localhost:8080
-```
-
-Type a spec for each side (or pick an example), choose the delay between moves, and press Start. Drag to rotate the pyramid, scroll to zoom, right-drag to pan. `http://localhost:8080/?mock=1` runs the viewer with a built-in fake server. The API and the event stream are described in `docs/web-protocol.md`.
+- [docs/rules.md](docs/rules.md): the full rules and the move notation
+- [docs/technical.md](docs/technical.md): how it is built, command-line tools,
+  tests, project layout
+- [docs/adr/](docs/adr/): the decision records, one per design choice
