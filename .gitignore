@@ -9,3 +9,6 @@ node_modules/
 
 # Haskell build output
 dist-newstyle/
+
+# Release packages built locally (packaging/build-packages.sh)
+/dist/

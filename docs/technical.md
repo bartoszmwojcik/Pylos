@@ -148,6 +148,31 @@ pylos-web [--lan] [PORT] [WEB_DIR]
   server in the browser, with no Haskell server needed for the game itself.
 - The page and the browser files are sent with `Cache-Control: no-cache`.
 
+## Releases
+
+A release is a `.deb` for Ubuntu 24.04 amd64 and a `.tar.gz`, both holding
+`pylos-web` and its web files, attached to a GitHub Release (D23, D24,
+[ADR 0028](adr/0028-release-packages.md)).
+
+To cut one:
+
+1. Set `version:` in `pylos.cabal` (for example `0.1.0`) and merge to `main`.
+2. Push the tag `v<version>` on that `main` commit:
+   `git tag v0.1.0 && git push origin v0.1.0`.
+3. `.github/workflows/release.yml` runs the validation gate, builds both
+   files, installs and plays a game with each in a clean `ubuntu:24.04`
+   container, and only then publishes the Release. If any step fails, nothing
+   is published.
+
+The same workflow, without publishing, runs on every pull request that
+changes `packaging/`, the workflow, `pylos.cabal` or the cabal project files.
+To build the files locally (needs `dpkg-dev`):
+
+```sh
+cabal build exe:pylos-web
+packaging/build-packages.sh "$(cabal list-bin pylos-web)" 0.1.0 dist
+```
+
 ## Layout
 
 ```
@@ -168,6 +193,7 @@ bitboard/Pylos/              the bitboard engine (internal library "bitboard")
 bots/Pylos/                  the bots and the match runner (internal library "bots")
 server/Pylos/Server/         the live game server (internal library "server")
 web/                         the browser viewer (plain JS + vendored Three.js)
+packaging/                   release package scripts (ADR 0028)
 app/                         pylos-ref, pylos-bit, pylos-match, pylos-web
 test/                        the test suite
 golden/                      frozen perft and playout values

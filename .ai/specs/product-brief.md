@@ -213,7 +213,7 @@ None. No synthetic material was used.
 | Q06 | Confirm or correct R04 (free ball; take-backs in order) and R06 (no draw rule in the engine). | No | project owner | closed 2026-11-22: both confirmed (R04, R06) |
 | Q07 | Is there anyone specific expected to install and play the game? | No | project owner | open; asked 2026-11-24 and not answered. Affects only A05 and D23. |
 | Q08 | How a raise and a take-back are entered on touch and on mouse, and what the phone layout looks like. | No; it is settled in the S5 spec, not in this brief. | S5 spec, with the owner's review | open |
-| Q09 | How the installed `pylos-web` finds its web files, and whether the cabal version `0.1.0.0` becomes `0.1.0`. | No | project owner; S6 implementation | partly answered 2026-11-26: the web-file lookup is D26. The cabal version is for the implementation. |
+| Q09 | How the installed `pylos-web` finds its web files, and whether the cabal version `0.1.0.0` becomes `0.1.0`. | No | project owner; S6 implementation | closed 2026-11-26: the web-file lookup is D26 (#44); the cabal version is now `0.1.0` and the release tag must match it (#45, ADR 0028), pending the owner's review in the PR. |
 
 ## Definition of Ready addendum (own)
 
