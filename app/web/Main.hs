@@ -2,6 +2,10 @@
 --
 -- > pylos-web [--lan] [PORT] [WEB_DIR]
 --
+-- Without WEB_DIR it serves @./web@, else a @web@ folder next to the
+-- executable, else @/usr/share/pylos/web@ (D26, 'resolveWebDir'), so an
+-- installed @pylos-web@ starts from any folder.
+--
 -- By default it listens on 127.0.0.1 only (N05). From a laptop, reach it
 -- through an SSH tunnel: @ssh -L 8080:localhost:8080 server@. With @--lan@
 -- it listens on 0.0.0.0, so a phone on the home network can play (D20); it
@@ -13,7 +17,9 @@ import Control.Exception (SomeException, try)
 import Data.String (fromString)
 import qualified Network.Socket as Net
 import qualified Network.Wai.Handler.Warp as Warp
-import System.Environment (getArgs)
+import System.Directory (doesDirectoryExist)
+import System.Environment (getArgs, getExecutablePath)
+import System.FilePath (takeDirectory)
 import System.Exit (exitWith, ExitCode (..))
 import System.IO (BufferMode (..), hPutStrLn, hSetBuffering, stderr, stdout)
 
@@ -32,9 +38,16 @@ main = do
       hPutStrLn stderr "usage: pylos-web [--lan] [PORT] [WEB_DIR]"
       exitWith (ExitFailure 2)
   let port = optPort opts
+  exeDir <- takeDirectory <$> getExecutablePath
+  found <- resolveWebDir doesDirectoryExist exeDir (optWebDir opts)
+  webDir <- case found of
+    Right d -> pure d
+    Left err -> do
+      hPutStrLn stderr ("pylos-web: " ++ err)
+      exitWith (ExitFailure 2)
   mgr <- newManager
-  app <- application mgr (optWebDir opts)
-  putStrLn ("pylos-web: http://localhost:" ++ show port ++ "/ (serving " ++ optWebDir opts ++ ")")
+  app <- application mgr webDir
+  putStrLn ("pylos-web: http://localhost:" ++ show port ++ "/ (serving " ++ webDir ++ ")")
   case optBind opts of
     LoopbackOnly -> putStrLn "pylos-web: listening on 127.0.0.1 only (use --lan for the home network)"
     HomeNetwork -> do

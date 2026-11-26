@@ -135,6 +135,12 @@ is a draw), and writes each game to `games/` as a JSON record
 pylos-web [--lan] [PORT] [WEB_DIR]
 ```
 
+- Without WEB_DIR it serves `./web` if that folder exists (a source
+  checkout), else a `web` folder next to the executable (the unpacked
+  `.tar.gz`), else `/usr/share/pylos/web` (the `.deb`). It prints the folder
+  it serves, and stops with the list of folders it tried when none exists
+  (D26, `resolveWebDir` in `app/web/WebArgs.hs`). An explicit WEB_DIR is used
+  as given.
 - Without `--lan` it listens on 127.0.0.1 only. With `--lan` it listens on
   0.0.0.0 and prints the LAN address (D20). There is no password; never
   forward the port to the internet (N05).
