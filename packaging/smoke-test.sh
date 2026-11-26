@@ -41,7 +41,9 @@ http() {
 # expect STATUS RESPONSE: the status line carries the code.
 expect() {
   local want=$1 response=$2 line
-  line=$(printf '%s' "$response" | head -n 1)
+  # The first line, without a pipe: under pipefail, `printf | head` dies of
+  # SIGPIPE when the response is bigger than the pipe buffer (three.js is).
+  line=${response%%$'\n'*}
   case "$line" in
     *" $want "*) ;;
     *) fail "expected HTTP $want, got: $line" ;;
@@ -56,11 +58,13 @@ check() {
   (cd "$run" && exec "$@" "$port") >"$run/log" 2>&1 &
   local pid=$!
   # Wait up to 10 s for the port to open.
+  local up=no
   for _ in $(seq 1 50); do
-    if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then break; fi
+    if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then up=yes; break; fi
     kill -0 "$pid" 2>/dev/null || { cat "$run/log" >&2; fail "pylos-web exited at start-up"; }
     sleep 0.2
   done
+  [ "$up" = yes ] || { cat "$run/log" >&2; fail "port $port never opened"; }
   cat "$run/log"
 
   expect 200 "$(http GET /)"
