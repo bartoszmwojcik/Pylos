@@ -1,0 +1,142 @@
+# Release workflow for Pylos (E07-S02, D23–D25).
+#
+# On a pushed version tag (v0.1.0) it builds pylos-web on Ubuntu 24.04,
+# packages it as a .deb and a .tar.gz, checks both on a clean Ubuntu 24.04
+# container, and only then publishes a GitHub Release with the two files.
+# On a pull request that touches the packaging it does everything except
+# publishing, so a broken package is caught before a tag is pushed.
+# Why each choice was made: docs/adr/0028-release-packages.md.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packaging/**'
+      - '.github/workflows/release.yml'
+      - 'pylos.cabal'
+      - 'cabal.project'
+      - 'cabal.project.freeze'
+
+# Read-only by default; only the publish job may write (it creates the Release).
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # Pinned, not ubuntu-latest: the binary needs this Ubuntu's C library or
+    # newer, and the package promises Ubuntu 24.04 (D23).
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # The package version is the cabal version. On a tag they must agree:
+      # tag v0.1.0 needs "version: 0.1.0" in pylos.cabal, so a release never
+      # carries a number the code does not know.
+      - id: version
+        run: |
+          version=$(sed -n 's/^version: *//p' pylos.cabal)
+          echo "pylos.cabal version: $version"
+          if [ "${GITHUB_REF_TYPE}" = tag ] && [ "${GITHUB_REF_NAME}" != "v$version" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match pylos.cabal version $version"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # The same toolchain and cache as ci.yml (ADR 0024).
+      - uses: haskell-actions/setup@v2
+        id: setup
+        with:
+          ghc-version: '9.10.1'
+          cabal-version: 'latest'
+      - run: cabal update
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ${{ steps.setup.outputs.cabal-store }}
+            dist-newstyle
+          key: release-${{ runner.os }}-24.04-ghc-${{ steps.setup.outputs.ghc-version }}-${{ hashFiles('pylos.cabal', 'cabal.project', 'cabal.project.freeze') }}
+          restore-keys: |
+            release-${{ runner.os }}-24.04-ghc-${{ steps.setup.outputs.ghc-version }}-
+
+      # The full validation gate, so a release is never cut from code that
+      # fails it, even if the tag was pushed on an untested commit.
+      - run: cabal build all --ghc-options=-Werror
+      - run: cabal test all --test-show-details=direct
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test/web-rules-perft.mjs
+
+      # strip removes the debugging symbols: a smaller download, same program.
+      - name: Package
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq dpkg-dev
+          cp "$(cabal list-bin pylos-web)" pylos-web
+          strip pylos-web
+          ldd pylos-web
+          packaging/build-packages.sh ./pylos-web "${{ steps.version.outputs.version }}" dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: dist/
+          if-no-files-found: error
+
+  # A07: install the .deb on a clean Ubuntu 24.04 and play a game, and do the
+  # same from the unpacked .tar.gz. If this fails, nothing is published.
+  smoke-test:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+      - run: |
+          version="${{ needs.build.outputs.version }}"
+          docker run --rm -v "$PWD:/repo" -w /repo ubuntu:24.04 \
+            bash packaging/smoke-test.sh \
+              "dist/pylos_${version}_amd64.deb" \
+              "dist/pylos-web-${version}-linux-amd64.tar.gz"
+
+  # Only for a tag, and only after the smoke test passed (D25).
+  publish:
+    needs: [build, smoke-test]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          cat > notes.md <<NOTES
+          Pylos ${VERSION}: play Pylos against a bot, or watch two bots, on a 3D board in your browser.
+
+          **Ubuntu 24.04 (amd64), no compiling needed:**
+
+          \`\`\`sh
+          sudo apt install ./pylos_${VERSION}_amd64.deb
+          pylos-web
+          \`\`\`
+
+          Then open http://localhost:8080. Or unpack \`pylos-web-${VERSION}-linux-amd64.tar.gz\` and run \`./pylos-web\` inside it.
+          The server listens on 127.0.0.1 only unless you add \`--lan\`. Other systems: build from source (README).
+          NOTES
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "Pylos ${VERSION}" \
+            --notes-file notes.md

@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               pylos
-version:            0.1.0.0
+version:            0.1.0
 synopsis:           A Pylos rules engine: a readable reference and a fast bitboard version
 description:
   See README.md. The reference engine (the main library) is the oracle;
