@@ -145,6 +145,8 @@ executable pylos-web
   other-modules:    WebArgs
   build-depends:
     , base
+    , directory
+    , filepath
     , network
     , pylos:server
     , warp        >=3.3 && <3.5
