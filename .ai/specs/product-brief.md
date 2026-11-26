@@ -1,12 +1,12 @@
 # Pylos — product brief
 
-- Date: 2026-11-22 (refreshed 2026-11-22; Q02 and Q03 answered 2026-11-23; S5 refresh 2026-11-24)
-- Mode: own; Owner: project owner; Pass: full (refresh, three interview rounds with the owner on 2026-11-22; a further refresh of three rounds on 2026-11-24 for S5)
-- Evidence basis: all sources come from the owner. The first is the owner's direct account of their situation and goals. The second is the owner's answers in the 2026-11-22 refresh session (three rounds), which settle every game rule and confirm the agent's design proposals. The third is the owner's answers on 2026-11-23 (bots and viewer) and 2026-11-24 (human-vs-bot play). The owner is the only user with a recorded account. The owner also wants the game to be playable by "anyone who installs this game"; no such person is named or interviewed, so nothing is claimed about their needs (A05). Several rules began as agent proposals that the owner then confirmed, and R06 and D08 are accepted agent recommendations. The rule answers come from the owner's memory of the game, not from a rulebook that was read. They define the rules this project implements. Whether they match the official Gigamic rules is the most consequential untested belief (A01).
-- Coverage: 60 claims — 48 sourced (interview 9, data 0, document 35, product 4, benchmark 0), 0 synthetic, 12 assumed; 0 entries on the collection plan
+- Date: 2026-11-22 (refreshed 2026-11-22; Q02 and Q03 answered 2026-11-23; S5 refresh 2026-11-24; S6 refresh 2026-11-26)
+- Mode: own (the S6 refresh adds the checks for an existing product); Owner: project owner; Pass: full (refresh, three interview rounds with the owner on 2026-11-22; a further refresh of three rounds on 2026-11-24 for S5; a one-round refresh on 2026-11-26 for S6)
+- Evidence basis: all sources come from the owner. The first is the owner's direct account of their situation and goals. The second is the owner's answers in the 2026-11-22 refresh session (three rounds), which settle every game rule and confirm the agent's design proposals. The third is the owner's answers on 2026-11-23 (bots and viewer), 2026-11-24 (human-vs-bot play) and 2026-11-26 (a prebuilt install and release 0.1.0). The owner is the only user with a recorded account. The owner also wants the game to be playable by "anyone who installs this game"; no such person is named or interviewed, so nothing is claimed about their needs (A05). Several rules began as agent proposals that the owner then confirmed, and R06 and D08 are accepted agent recommendations. The rule answers come from the owner's memory of the game, not from a rulebook that was read. They define the rules this project implements. Whether they match the official Gigamic rules is the most consequential untested belief (A01).
+- Coverage: 71 claims — 56 sourced (interview 9, data 0, document 40, product 7, benchmark 0), 0 synthetic, 15 assumed; 0 entries on the collection plan
 - Synthetic hypotheses outside Coverage: 0
-- Definition of Ready signed by: not yet signed. Ready for: a backlog for S5 (see the Definition of Ready addendum).
-- Sources: `.ai/specs/research/interviews/2026-11-22-owner-account.md`, `.ai/specs/research/decisions/2026-11-22-owner-direction.md`, `.ai/specs/research/decisions/2026-11-22-owner-rules-and-proposals.md`, `.ai/specs/research/decisions/2026-11-23-owner-bots-and-viewer.md`, `.ai/specs/research/decisions/2026-11-24-owner-human-vs-bot.md`, `.ai/specs/briefs/2026-11-22-pylos-reference-engine.md`, `.ai/specs/backlog.md`
+- Definition of Ready signed by: not yet signed. Ready for: a backlog and implementation plan for S6 (see the Definition of Ready addendum).
+- Sources: `.ai/specs/research/interviews/2026-11-22-owner-account.md`, `.ai/specs/research/decisions/2026-11-22-owner-direction.md`, `.ai/specs/research/decisions/2026-11-22-owner-rules-and-proposals.md`, `.ai/specs/research/decisions/2026-11-23-owner-bots-and-viewer.md`, `.ai/specs/research/decisions/2026-11-24-owner-human-vs-bot.md`, `.ai/specs/research/decisions/2026-11-26-owner-prebuilt-install.md`, `.ai/specs/briefs/2026-11-22-pylos-reference-engine.md`, `.ai/specs/backlog.md`
 
 ## Decision summary
 
@@ -14,13 +14,13 @@ The owner is building Pylos in Haskell as a learning project: a readable referen
 
 The toolchain, both engines, the bots, the match runner and the live viewer are built and merged (E01–E04, closed 2026-11-24).
 
-This refresh moves **S5, human-vs-bot play, into Now**. The owner wants to play the bots themselves to judge how good the bot's evaluation is, to get better at the game, and to feel how the different bots play (P04). S5 is one human against one bot in the browser. Only legal moves are accepted, and there is no undo (D18). The play screen works on a phone and on a large screen, and the two may lay out differently (D19). So that a phone can reach the server, the server gets an opt-in way to listen on the home network. The default stays 127.0.0.1, and there are still no accounts and no internet deployment (D20, N05 superseding N02). Other people install it by building from source (D21).
+S5, human-vs-bot play in the browser with a phone layout, opt-in home-network listening and a training mode, was moved into Now on 2026-11-24 (D18–D22, N05). S5 is built and merged (E05, #39). `[PRODUCT]` repository, `main` at `f07b746`
 
-To help judge the evaluation, S5 includes a small **training mode**, chosen when a game starts. After each move it shows how the bot scores the position. A real game shows nothing (D22). A fuller analysis, such as the bot's best moves with their scores, stays later. Also later: human vs human, taking over a side mid-game, undo, an easier install, and replay.
+This refresh moves **S6, a prebuilt install, into Now**. Today Pylos can be installed only by building it from source with the Haskell toolchain (P05). The owner asked for an Ubuntu package, a first version 0.1.0 published as a GitHub Release with an executable and the package, and a README section on installing without compiling. S6 is a `.deb` for Ubuntu 24.04 amd64 and a `.tar.gz` with the `pylos-web` executable and its web files (D23). Only the game server is packaged, and it is started by hand; there is no service, and it still listens on 127.0.0.1 by default (D24). A GitHub Actions workflow builds both files and publishes the Release when the tag `v0.1.0` is pushed (D25). D23 supersedes D21; building from source stays documented for other systems and for the developer tools.
 
-Unknowns that do not block S5: whether anyone besides the owner will install it (A05), and whether a phone on the home network can actually reach this server. The owner says the server is on the same home network, but has not tried it (A06). The first S5 story checks it, and phone play depends on it. The detailed input design (how a raise and a take-back are entered by tap or click) is an agent proposal for the S5 spec (Key flows).
+Unknowns that do not block S6: who besides the owner will install it (A05), and whether the binary built on GitHub's runner starts on a clean Ubuntu 24.04 with only the package's declared libraries (A07); the workflow checks that before it publishes. The installed server finds its web files by D26.
 
-Next action: build the S5 backlog (`om-backlog --dry-run` first).
+Next action: implement S6 on one PR (not started; the owner chose to stop after the brief on 2026-11-26); after it is merged, push the tag `v0.1.0`.
 
 ## Vision
 
@@ -32,7 +32,7 @@ The owner also wants to play the bots themselves, and wants the game to be playa
 
 - Customer (pays): none. This is a personal project. `[DOCUMENT]` owner-direction
 - User (uses): the project owner, developing on a server without a display. `[INTERVIEW]` owner account 2026-11-22
-- Intended future users: people who build the game from source and play it against a bot. The owner chose this audience, but no such person is named and nothing is known about their needs (A05). `[DOCUMENT]` owner-human-vs-bot 2026-11-24
+- Intended future users: people who install the game, from source or (after S6) from the Ubuntu package, and play it against a bot. The owner chose this audience, but no such person is named and nothing is known about their needs (A05). `[DOCUMENT]` owner-human-vs-bot 2026-11-24
 - Stakeholders (decides, blocks, operates): the owner, in every role.
 - Decider for scope decisions: the project owner
 
@@ -42,6 +42,8 @@ The owner also wants to play the bots themselves, and wants the game to be playa
 - P02 — The owner wants to understand the code and the reasons for its decisions, not only to obtain a working engine. `[INTERVIEW]` owner account 2026-11-22
 - P03 — An optimised engine needs an independent correctness oracle, otherwise its bugs go unnoticed. This is the owner's stated rationale for the reference-then-bitboard order. `[INTERVIEW]` owner account 2026-11-22
 - P04 — The owner wants to play them to judge whether the bot's position evaluation is good, to improve their own play, and to get a feel for how the different bots play. `[DOCUMENT]` owner-human-vs-bot 2026-11-24. That no human can play today is a repository fact: the web protocol has no move command (`docs/web-protocol.md`). The first sentence is the agent's framing of why watching is not enough. `[PRODUCT]` repository
+- P05 — Installing Pylos today needs ghcup, GHC 9.10.1, several system libraries and a build of a few minutes (README, Install). `[PRODUCT]` repository, README at `f07b746`
+- P05 (request) — The owner asked for an install on Ubuntu without compiling, published as release 0.1.0. They did not say who it is for or why now; no other installer is known (A05). `[DOCUMENT]` owner-prebuilt-install 2026-11-26
 
 ## Product and how it stands out
 
@@ -58,6 +60,7 @@ Benchmarks are deferred because they do not inform the current decision.
 - Business goal: none. This is a personal learning project.
 - User outcome: the owner watches a bot-vs-bot game in a browser and can explain why each engine part is built the way it is. `[INTERVIEW]` owner account 2026-11-22
 - User outcome (S5): the owner plays a full game against any bot spec, on a laptop and on a phone, entering only legal moves, and the game ends with a result. The phone part depends on A06. `[ASSUMPTION]` agent proposal, derived from D18–D20
+- User outcome (S6): on a clean Ubuntu 24.04 amd64 machine without Haskell tools, a person downloads the `.deb` from Release `v0.1.0`, installs it, starts `pylos-web`, opens the page and plays a game. `[ASSUMPTION]` agent proposal, derived from D23–D25
 - Primary metric: deferred. No numeric target was given, and none is needed for the current choice.
 - What must not get worse: the bitboard engine must match the reference engine on the frozen perft and playout golden values (D05, D11). `[DOCUMENT]` owner-rules-and-proposals
 
@@ -71,7 +74,8 @@ Benchmarks are deferred because they do not inform the current decision.
   - S3, bots (random, greedy, alpha-beta, MCTS, one knob each) and a match runner with a ply cap (D02, D12, D15). Added 2026-11-23.
   - S4, a live 3D web viewer of bot-vs-bot games served by the backend (D01, D03, D16, D17). Added 2026-11-23.
   - S1–S4 are built and merged (E01–E04). `[PRODUCT]` repository, `main` at `08bfd92`
-  - S5, human-vs-bot play in the browser: one human against one bot, legal moves only, no undo (D18); phone and large-screen layouts (D19); opt-in home-network listening (D20, N05); install by building from source (D21); an optional training mode that shows the bot's score (D22). Moved from Next on 2026-11-24.
+  - S5, human-vs-bot play in the browser: one human against one bot, legal moves only, no undo (D18); phone and large-screen layouts (D19); opt-in home-network listening (D20, N05); install by building from source (D21, superseded by D23 for Ubuntu 24.04 amd64); an optional training mode that shows the bot's score (D22). Moved from Next on 2026-11-24.
+  - S6, a prebuilt install: a `.deb` for Ubuntu 24.04 amd64 and a `.tar.gz` with `pylos-web` and its web files (D23, D24), published as GitHub Release `v0.1.0` by a tag-triggered workflow (D25), and a README section on installing without compiling. Added 2026-11-26.
 - **Next:**
   - Nothing is planned yet.
 - **Later:**
@@ -79,7 +83,7 @@ Benchmarks are deferred because they do not inform the current decision.
   - A fuller view of what the bot thinks, such as its best few moves with their scores, or scores from every bot kind on the same scale. S5's training mode (D22) is the small first version.
   - Human vs human on one browser, and taking over one side of a running bot game (not chosen for S5, D18).
   - Undo (excluded from S5, D18).
-  - An easier install, such as a prebuilt binary or a container (D21).
+  - Packages for other Ubuntu versions, other distributions or architectures, the developer tools as packages, a service that starts at boot, or a container (D23, D24).
   - Deeper alpha-beta search, up to depth 9 (#29).
 - **Not doing:** see Non-goals.
 
@@ -113,6 +117,14 @@ Benchmarks are deferred because they do not inform the current decision.
   5. The move is sent to the server; the bot replies; both moves appear on the same event stream (D16). In a training game, the bot's score appears after each move.
   6. The game ends with a win, a loss or the ply cap (R05, D12).
   - `[ASSUMPTION]` agent proposal; steps 3–4 are the input design the spec must work out for both touch and mouse
+
+- Current state (2026-11-26): the game is installed only by building from source (README). `[PRODUCT]` repository
+- Future state (S6), to be settled in the implementation:
+  1. A person opens the project's Releases page and downloads `v0.1.0`: the `.deb`, or the `.tar.gz`.
+  2. With the `.deb`: `sudo apt install ./<package>.deb`, then `pylos-web` from any folder. With the `.tar.gz`: unpack it and run `./pylos-web` inside.
+  3. They open http://localhost:8080 and play as in S5. `--lan` and the port work as before (D20).
+  4. To remove it: `sudo apt remove pylos`.
+  - `[ASSUMPTION]` agent proposal; the web-file lookup is D26; package name and file names are for the implementation
 
 ## Business rules
 
@@ -161,8 +173,12 @@ Benchmarks are deferred because they do not inform the current decision.
 | D18 | 2026-11-24 | S5 is one human against one bot in the browser. Only legal moves can be entered; there is no undo. | P04. The owner chose "just me as a player" over human vs human on one browser and over taking over a side mid-game; those two are Later. "only legal move is possible. no undo." How a game is set up (a "human" player kind next to the bot specs, ADR 0023; the human picking the bot and their colour) is an agent proposal for the S5 spec. | project owner | active | before the S5 spec | owner | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | none |
 | D19 | 2026-11-24 | The play screen works on a phone and on a large screen. The two may use different layouts, and input works by touch and by mouse. | The owner's words: "UX should be intuitive, so I assume mobile phone and big screen can be a bit different." What "intuitive" means in detail is for the S5 spec and its design pass. | project owner | active | before the S5 spec | owner | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | none |
 | D20 | 2026-11-24 | The server keeps listening on 127.0.0.1 by default. An explicit start-up option makes it listen on the home network, so a phone on the same network can play. There are no accounts and no authentication. | A phone cannot reach 127.0.0.1 on the server. The agent proposed the option because, in the agent's view, an SSH tunnel is awkward on a phone. The owner answered "whatever technically in home network is feasible", delegating the technical choice. While the option is on, anyone on the same network can open the game and start or play games with no password; the owner accepted that: "it's ok." | project owner | active | A06 | owner | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | none |
-| D21 | 2026-11-24 | People other than the owner install the game by building it from source, as the README describes. An easier install is Later. | The owner's answer: "yes full build for now". It was an agent recommendation; no other player is known yet (A05). | project owner | active | A05 | owner | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | none |
+| D21 | 2026-11-24 | People other than the owner install the game by building it from source, as the README describes. An easier install is Later. | The owner's answer: "yes full build for now". It was an agent recommendation; no other player is known yet (A05). | project owner | superseded by D23 (for Ubuntu 24.04 amd64) | — | — | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | none |
 | D22 | 2026-11-24 | A game against a bot is started either as a real game or as a training game. In a training game, the screen shows after each move how the bot scores the position. Greedy and alpha-beta show the shared evaluation (alpha-beta its search score), MCTS its win rate for the move it chose, and random shows nothing. A real game shows no bot information. The mode is fixed when the game starts. | P04: the owner wants to judge whether the bot's evaluation is good. The owner asked for a small version that can be turned off: "propose a small version of it. it should be possible though to disable it in order to have choice of real game or training one". The details (which score, fixed at start rather than toggled mid-game) are an agent proposal. Fixing the mode at start keeps a real game free of hints. A fuller view (best moves with scores) is Later. | project owner | active | before the S5 spec | owner | `[DOCUMENT]` owner-human-vs-bot 2026-11-24 | none |
+| D23 | 2026-11-26 | Ubuntu 24.04 amd64 users can install Pylos without compiling: a `.deb` package and a `.tar.gz` archive, both holding the `pylos-web` executable and its web files, are attached to a GitHub Release. The first release is version 0.1.0. Other systems and the developer tools are still built from source, as the README describes. | P05: the owner's request on 2026-11-26. The owner chose Ubuntu 24.04 amd64 (the agent's recommendation) over also building for 22.04; a binary built on one Ubuntu needs that version's C library or newer. | project owner | active | A05, A07 | owner approves a superseding row | `[DOCUMENT]` owner-prebuilt-install 2026-11-26 | D21 |
+| D24 | 2026-11-26 | The package holds only `pylos-web` and its web files. It installs no service: the server is started by hand and keeps listening on 127.0.0.1 unless `--lan` is given (N05, D20). | The owner chose "only pylos-web" over all four commands (the agent's recommendation) and over a systemd service. Without a service the server never runs unattended, so the exposure of D20 is unchanged. | project owner | active | none | owner approves a superseding row | `[DOCUMENT]` owner-prebuilt-install 2026-11-26 | none |
+| D25 | 2026-11-26 | A GitHub Actions workflow builds the `.deb` and the `.tar.gz` and publishes the GitHub Release when a version tag (`v0.1.0`) is pushed. The agent pushes `v0.1.0` after the S6 PR is merged to `main`. | The owner chose the agent's recommendation over creating the tag by hand. Building on GitHub's runner makes every release repeatable from a tag. It adds CI, which AGENTS.md lists under "Ask first"; this answer is that approval. | project owner | active | none | owner approves a superseding row | `[DOCUMENT]` owner-prebuilt-install 2026-11-26 | none |
+| D26 | 2026-11-26 | When `pylos-web` is started without WEB_DIR, it uses `./web` if that folder exists, as today; otherwise a `web` folder next to the executable (the `.tar.gz`); otherwise `/usr/share/pylos/web` (the `.deb`). An explicit WEB_DIR and the other arguments keep their meaning. | Lets the installed command run from any folder while a source checkout behaves as before. The owner chose this agent recommendation over a wrapper script, which would force a port whenever WEB_DIR is given and would not help the `.tar.gz`. | project owner | active | none | owner approves a superseding row | `[DOCUMENT]` owner-prebuilt-install 2026-11-26 | none |
 
 ## Riskiest assumptions
 
@@ -172,8 +188,10 @@ Benchmarks are deferred because they do not inform the current decision.
 | A02 | Decision records plus Haddock rule citations make the code understandable to the owner. `[ASSUMPTION]` agent proposal | medium | The owner read the decision records and the reference rules module on 2026-11-23. | P02 is not met, and the documentation style must change. | The owner reads the first decision record and the first rules module, then says what was unclear. | project owner | after first S1 story | confirmed 2026-11-23: the owner can read the rules and the code (#6) |
 | A03 | ghcup with GHC 9.10 installs and builds on the headless server. `[ASSUMPTION]` agent proposal | medium | No Haskell tools were on the PATH on 2026-11-22. | The toolchain decision D10 changes (for example to nix or stack). | Install it and run `cabal build` and `cabal test` on a hello-world project with QuickCheck. | project owner | first task | confirmed: E01 installed GHC 9.10.1 through ghcup, and `cabal build all` and `cabal test all` pass on the server and in CI (`main` at `08bfd92`) |
 | A04 | Random-play games end, by a win or the cap, within a few hundred plies. `[ASSUMPTION]` agent proposal | low | none | The ply cap and the playout bound need retuning. | Run 10,000 seeded playouts in S1 and look at the length distribution. | project owner | during S1 | untested |
-| A05 | People other than the owner will install the game and play it. `[ASSUMPTION]` owner's belief | low | The owner said "anyone who installs this game"; no such person is named. | Only the owner plays. D21 and the phone layout still serve the owner, so S5 does not change. | Note whether anyone asks for or installs it; no test is planned. | project owner | none | untested |
+| A05 | People other than the owner will install the game and play it. `[ASSUMPTION]` owner's belief | low | The owner said "anyone who installs this game"; no such person is named. | Only the owner plays. D23 and the phone layout still serve the owner, so S5 does not change. | Note whether anyone asks for or installs it; no test is planned. | project owner | none | untested |
 | A06 | A phone on the owner's home network can reach the headless server when D20's option is on. `[ASSUMPTION]` agent proposal | medium | The owner says the server is on the same home network as the phone ("yes. this is assumption for now", 2026-11-24). It has not been tried; a firewall could still block it. The owner reaches the server today through an SSH tunnel from a laptop (README). | Phone play needs another route (a tunnel, or a different network setup), and D20 needs revisiting. | Start the server with the option and open it from the phone; this is part of the first S5 story. | project owner | first S5 story | untested |
+
+| A07 | The `pylos-web` binary built on GitHub's ubuntu-24.04 runner starts on a clean Ubuntu 24.04 amd64 with only the libraries the `.deb` declares. `[ASSUMPTION]` agent proposal | medium | none; no packaged binary exists yet. Expected dynamic libraries are glibc, libgmp, likely libffi and libz (`cabal.project.freeze` builds `zlib` against the system library); confirm with `ldd` in the workflow. | The package does not start, or needs libraries it does not declare; D23's install promise fails. | In the release workflow, install the `.deb` in a clean `ubuntu:24.04` container, start `pylos-web`, fetch the page and one of its script files, and start a bot game through the API; the Release is published only when each request succeeds and a game event arrives. | project owner | before `v0.1.0` is published | untested |
 
 ## Kill criteria
 
@@ -193,8 +211,9 @@ None. No synthetic material was used.
 | Q04 | Which GitHub repository (or other tracker) will hold the backlog? | No | project owner | closed: the backlog is filed as #1–#12 in the project's GitHub repository (`.ai/specs/backlog.md`) |
 | Q05 | Clarify open points OP1–OP9, listed in `.ai/specs/briefs/2026-11-22-pylos-reference-engine.md` under "Open points for om-discover". | No | project owner, via `om-discover --refresh` | partly answered 2026-11-22: OP1, OP2, OP3, OP4 principle (D11), OP7 toolchain (D10), OP8 (D13). OP9 is settled by the Scope confirmed with this brief. OP5 and OP6 remain as Q03 and Q02; OP7's web layer and frontend remain with Q02. |
 | Q06 | Confirm or correct R04 (free ball; take-backs in order) and R06 (no draw rule in the engine). | No | project owner | closed 2026-11-22: both confirmed (R04, R06) |
-| Q07 | Is there anyone specific expected to install and play the game? | No | project owner | open; asked 2026-11-24 and not answered. Affects only A05 and D21. |
+| Q07 | Is there anyone specific expected to install and play the game? | No | project owner | open; asked 2026-11-24 and not answered. Affects only A05 and D23. |
 | Q08 | How a raise and a take-back are entered on touch and on mouse, and what the phone layout looks like. | No; it is settled in the S5 spec, not in this brief. | S5 spec, with the owner's review | open |
+| Q09 | How the installed `pylos-web` finds its web files, and whether the cabal version `0.1.0.0` becomes `0.1.0`. | No | project owner; S6 implementation | partly answered 2026-11-26: the web-file lookup is D26. The cabal version is for the implementation. |
 
 ## Definition of Ready addendum (own)
 
@@ -207,6 +226,10 @@ Ready for (2026-11-22, now historical; S1–S4 are built): implementation planni
 **S5 refresh, 2026-11-24.** P04 rests on the owner's own account of what they want from playing the bots. The S5 user is the owner. The wider audience in Target group is the owner's choice, not evidence (A05), and S5 does not depend on it. Expected outcome and check: the S5 user outcome in Goals. Out of scope: the Later items in Scope and N05. D18–D22 and N05 are active, with the owner as decider. No blocking question is open: Q07 does not block, and Q08 belongs to the S5 spec. A06 rests on the owner's statement only and is checked by the first S5 story; the phone stories depend on it.
 
 Ready for: a backlog for S5 (`om-backlog --dry-run`), and an S5 spec that works out the input design (Q08). Implementation touches protected surfaces: the web protocol (`docs/web-protocol.md`, a new `POST /api/games/:id/move`, a human player kind and the training-mode score in move events), the bot interface (a bot must also return its score for D22; `chooseMove` today returns only a move) and the 127.0.0.1 rule in `AGENTS.md` and ADR 0023, which N05 and D20 change to "127.0.0.1 by default".
+
+**S6 refresh, 2026-11-26.** P05 rests on a repository fact (the README's build steps) and on the owner's request. Who besides the owner will install the package is unknown (A05); S6 does not depend on it, because the owner chose to publish it. Expected outcome and check: the S6 user outcome in Goals, checked by A07's test in the release workflow. Out of scope: the Later install items and the developer tools (D24). D23–D26 are active, with the owner as decider, confirmed on 2026-11-26. No blocking question is open; the rest of Q09 (the cabal version) belongs to the implementation.
+
+Ready for: one implementation PR for S6. The release workflow pins `runs-on: ubuntu-24.04` (not `ubuntu-latest`, which `ci.yml` uses), so D23's reasoning about the C library holds when `latest` moves. It touches: CI (a new release workflow next to `.github/workflows/ci.yml`, with ADR 0024 or a new decision record), the README's Install section, the `pylos-web` default web folder (D26; `app/web/WebArgs.hs` with a test, `docs/technical.md` and the web-server ADR 0023), and the `pylos.cabal` version. The release itself (the `v0.1.0` tag) happens only after that PR is merged to `main`.
 
 ## Collection plan
 

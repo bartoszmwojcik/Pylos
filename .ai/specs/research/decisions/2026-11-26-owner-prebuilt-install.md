@@ -1,0 +1,24 @@
+# Prebuilt install for Ubuntu and release 0.1.0 (S6), settled by the project owner, 2026-11-26
+
+- Date, owner: 2026-11-26, project owner (om-discover refresh session, one round)
+- Context and the options weighed: D21 (2026-11-24) said that people other than the owner build from source, with an easier install Later. The owner asked, in Polish, for an Ubuntu installation package, a version 0.1.0 with a GitHub Release carrying an executable and the package, and a README section on installing without compiling. Building from source today needs ghcup, GHC 9.10.1, system libraries and a build of several minutes (README). The agent asked three questions with options; the agent marked one option in each as its recommendation.
+- Owner's request, as given: "Chcę dodać wykonanie pakietu instalacyjnego na Ubuntu. Zrobić wersję 0.1.0 i jej Release wraz z wersją wykonywalna i pakietem instalacyjnym. Dodatkowo aktualizację readme o informację o możliwości instalacji bez kompilowania"
+- Owner's answers (choices picked from the options offered):
+  - Target: "24.04 amd64" (the agent's recommendation). Rejected: 22.04 + 24.04, 22.04 only.
+  - Contents: "Tylko pylos-web" (only the game server and its web files). Rejected: all four commands without a service (the agent's recommendation); the commands plus a systemd service.
+  - Release: "Workflow na tag" (the agent's recommendation): a new GitHub Actions workflow builds the package and the executable archive when the tag `v0.1.0` is pushed and publishes a Release with both; the agent pushes the tag after the PR is merged to `main`. Rejected: the same workflow with the owner creating the tag.
+- Not stated by the owner: why an install without compiling is wanted now, and for whom. No other player is named (A05 remains untested).
+- Decision and why:
+  - S6 is a prebuilt install: a `.deb` package for Ubuntu 24.04 amd64 and a `.tar.gz` archive with the `pylos-web` executable and its web files, both attached to a GitHub Release `v0.1.0`.
+  - Only `pylos-web` is packaged; the developer tools (`pylos-ref`, `pylos-bit`, `pylos-match`) stay build-from-source.
+  - No systemd service: the server is started by hand, and it still listens on 127.0.0.1 by default (N05, D20).
+  - The Release is built by a tag-triggered workflow. This adds CI, which AGENTS.md lists under "Ask first"; the owner approved it with this answer.
+  - The README gains a section on installing without compiling; building from source stays documented.
+- Consequences, and what would make us revisit it:
+  - D21's "build from source only" is superseded for Ubuntu 24.04 amd64.
+  - Other Ubuntu versions, other distributions, other architectures and a container stay Later.
+  - If the binary does not start on a clean Ubuntu 24.04 (a missing shared library), the package's dependencies must change.
+- Sign-off round, 2026-11-26 (the owner confirmed the brief draft and answered one decision question):
+  - Asked what `pylos-web` without WEB_DIR should do when `./web` does not exist: "Fallback do /usr/share" (the agent's recommendation): first `./web` as today, then a `web` folder next to the executable (the `.tar.gz`), then `/usr/share/pylos/web` (the `.deb`); an explicit WEB_DIR is unchanged. Rejected: a wrapper script in the `.deb` with the Haskell code unchanged.
+  - Asked whether to implement S6 now and open a PR: "Tylko brief" (this session ends with the brief committed on its branch; implementation and the `v0.1.0` tag are later, separately authorised steps).
+- Status: active
