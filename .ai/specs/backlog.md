@@ -2,7 +2,7 @@
 
 ## .ai/specs/product-brief.md
 Backlog source: .ai/specs/product-brief.md
-Last filed: 2026-11-24 (E05 #30 with stories #31–#35 and parked E06 #36 added after the S5 refresh; E01–E04 are closed)
+Last filed: 2026-11-26 (E07 #43 with stories #44–#47 added after the S6 refresh; parked E06 #36 updated; E01–E05 are closed)
 
 | Id | Issue | Title | Epic | Depends on | Adopted |
 |---|---|---|---|---|---|
@@ -12,6 +12,7 @@ Last filed: 2026-11-24 (E05 #30 with stories #31–#35 and parked E06 #36 added 
 | E04 | [#4](https://github.com/bartoszmwojcik/Pylos/issues/4) | Bots and live 3D viewer (S3, S4) | — | — | no |
 | E05 | [#30](https://github.com/bartoszmwojcik/Pylos/issues/30) | Human-vs-bot play (S5) | — | — | no |
 | E06 | [#36](https://github.com/bartoszmwojcik/Pylos/issues/36) | Later | — | — | no |
+| E07 | [#43](https://github.com/bartoszmwojcik/Pylos/issues/43) | Prebuilt Ubuntu install and release 0.1.0 (S6) | — | — | no |
 | E01-S01 | [#5](https://github.com/bartoszmwojcik/Pylos/issues/5) | The owner can build and test the project on the headless server | #1 | — | no |
 | E01-S02 | [#6](https://github.com/bartoszmwojcik/Pylos/issues/6) | The owner can read why the project is built the way it is | #1 | E01-S01 | no |
 | E02-S01 | [#7](https://github.com/bartoszmwojcik/Pylos/issues/7) | The owner can build any board position and see it printed | #2 | E01-S01 | no |
@@ -30,3 +31,7 @@ Last filed: 2026-11-24 (E05 #30 with stories #31–#35 and parked E06 #36 added 
 | E05-S03 | [#33](https://github.com/bartoszmwojcik/Pylos/issues/33) | The owner can play a bot in the 3D viewer with a mouse on a large screen | #30 | E05-S02 | no |
 | E05-S04 | [#34](https://github.com/bartoszmwojcik/Pylos/issues/34) | The owner can play a bot on a phone by touch | #30 | E05-S01, E05-S03 | no |
 | E05-S05 | [#35](https://github.com/bartoszmwojcik/Pylos/issues/35) | The owner can choose a training game and see the bot's score after each move | #30 | E05-S03 | no |
+| E07-S01 | [#44](https://github.com/bartoszmwojcik/Pylos/issues/44) | A person can start pylos-web from any folder and it finds its web files | #43 | — | no |
+| E07-S02 | [#45](https://github.com/bartoszmwojcik/Pylos/issues/45) | A person can download a .deb and a .tar.gz of pylos-web built from a version tag | #43 | E07-S01 | no |
+| E07-S03 | [#46](https://github.com/bartoszmwojcik/Pylos/issues/46) | A README reader can install and run Pylos on Ubuntu 24.04 without compiling | #43 | E07-S02 | no |
+| E07-S04 | [#47](https://github.com/bartoszmwojcik/Pylos/issues/47) | A person can download Pylos 0.1.0 from the project's Releases page | #43 | E07-S02, E07-S03 | no |
