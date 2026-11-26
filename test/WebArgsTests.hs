@@ -12,7 +12,7 @@ import WebArgs
 tests :: TestTree
 tests =
   testGroup
-    "E05-S01 pylos-web arguments"
+    "E05-S01, E07-S01 pylos-web arguments and web folder"
     [ testCase "no arguments: loopback, port 8080, no WEB_DIR" $
         parseArgs [] @?= Right (Options 8080 Nothing LoopbackOnly)
     , testCase "positional PORT and WEB_DIR still work" $ do

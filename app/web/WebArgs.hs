@@ -76,7 +76,7 @@ webDirCandidates exeDir = ["web", exeDir </> "web", "/usr/share/pylos/web"]
 -- every folder that was tried.
 --
 -- The folder check is passed in, so the order is tested without touching
--- the disk; @Main@ passes 'System.Directory.doesDirectoryExist'.
+-- the disk; @Main@ passes @doesDirectoryExist@.
 resolveWebDir :: Monad m => (FilePath -> m Bool) -> FilePath -> Maybe FilePath -> m (Either String FilePath)
 resolveWebDir _ _ (Just dir) = pure (Right dir)
 resolveWebDir exists exeDir Nothing = go candidates
