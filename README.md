@@ -99,7 +99,8 @@ pylos-web-0.1.0/pylos-web
 ```
 
 The server finds the `web` folder next to it, so it can be started from any
-folder. To remove it, delete the `pylos-web-0.1.0` folder.
+folder. (A `web` folder in the folder you start it from comes first, as in a
+source checkout.) To remove it, delete the `pylos-web-0.1.0` folder.
 
 For a newer release, replace `0.1.0` with its version number. The server
 listens on port 8080 of this computer only; see [Play](#play) for another

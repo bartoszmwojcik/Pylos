@@ -164,9 +164,11 @@ To cut one:
    container, and only then publishes the Release. If any step fails, nothing
    is published.
 
-A tag is pushed only with the owner's go-ahead (D25). If the workflow fails
-on a tag, fix the cause on `main` first; deleting, moving or re-pushing the
-tag also needs the owner's go-ahead. The install steps for players are in the
+D25 has the agent push `v0.1.0` once S6 is merged, after a last check with
+the owner right before the push. Any other tag needs the owner's go-ahead
+(AGENTS.md). If the workflow fails on a tag, fix the cause on `main` first.
+Deleting, moving or re-pushing a tag also needs the owner's go-ahead
+(E07-S04). The install steps for players are in the
 README, [Install without compiling](../README.md#install-without-compiling-ubuntu-2404).
 
 The same workflow, without publishing, runs on every pull request that
