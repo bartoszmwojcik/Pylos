@@ -60,7 +60,54 @@ longer before each move.
 
 ## Install
 
-Pylos is built from source. These steps are for Ubuntu.
+There are two ways to install Pylos:
+
+- **Without compiling**, on **Ubuntu 24.04 (amd64)** only: download a
+  prebuilt package from the
+  [Releases page](https://github.com/bartoszmwojcik/Pylos/releases).
+- **From source**, on any other system, or if you also want the developer
+  tools (`pylos-ref`, `pylos-bit`, `pylos-match`).
+
+### Install without compiling (Ubuntu 24.04)
+
+A release has two files. Both hold only the game server, `pylos-web`, and the
+web page it serves. Neither needs Haskell tools. Neither starts anything
+when the computer boots: you start the server yourself when you want to play.
+
+**The `.deb` package** (recommended). Download `pylos_0.1.0_amd64.deb` from
+the [Releases page](https://github.com/bartoszmwojcik/Pylos/releases), then
+install it from the folder you downloaded it to:
+
+```sh
+sudo apt install ./pylos_0.1.0_amd64.deb
+pylos-web
+```
+
+Open **http://localhost:8080** in a browser. `apt` installs the few system
+libraries the server needs. To remove the game again:
+
+```sh
+sudo apt remove pylos
+```
+
+**The `.tar.gz` archive**, if you cannot or do not want to install a package.
+Download `pylos-web-0.1.0-linux-amd64.tar.gz`, then:
+
+```sh
+tar -xzf pylos-web-0.1.0-linux-amd64.tar.gz
+pylos-web-0.1.0/pylos-web
+```
+
+The server finds the `web` folder next to it, so it can be started from any
+folder. To remove it, delete the `pylos-web-0.1.0` folder.
+
+For a newer release, replace `0.1.0` with its version number. The server
+listens on port 8080 of this computer only; see [Play](#play) for another
+port and for playing from a phone.
+
+### Build from source
+
+These steps are for Ubuntu.
 
 1. System libraries:
 
@@ -89,7 +136,15 @@ If the build stops with `cannot find -lgmp`, see
 
 ## Play
 
-Start the server from the project folder:
+Start the server. With the `.deb` installed:
+
+```sh
+pylos-web            # port 8080
+pylos-web 9000       # another port: then open http://localhost:9000
+```
+
+From the unpacked `.tar.gz`, run `pylos-web-0.1.0/pylos-web` the same way.
+After building from source, start it from the project folder:
 
 ```sh
 $(cabal list-bin pylos-web) 8080 web
@@ -121,7 +176,9 @@ By default only the computer running the server can open the game. To allow a
 phone or another computer on the same network, add `--lan`:
 
 ```sh
-$(cabal list-bin pylos-web) --lan 8080 web
+pylos-web --lan                          # the .deb
+pylos-web-0.1.0/pylos-web --lan          # the .tar.gz
+$(cabal list-bin pylos-web) --lan 8080 web   # built from source
 ```
 
 The server prints the address to open on the phone. **Anyone on the same

@@ -164,6 +164,11 @@ To cut one:
    container, and only then publishes the Release. If any step fails, nothing
    is published.
 
+A tag is pushed only with the owner's go-ahead (D25). If the workflow fails
+on a tag, fix the cause on `main` first; deleting, moving or re-pushing the
+tag also needs the owner's go-ahead. The install steps for players are in the
+README, [Install without compiling](../README.md#install-without-compiling-ubuntu-2404).
+
 The same workflow, without publishing, runs on every pull request that
 changes `packaging/`, the workflow, `pylos.cabal` or the cabal project files.
 To build the files locally (needs `dpkg-dev`):
